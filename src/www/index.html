@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>BLLED</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<svg class="sr" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-dash" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z"/></symbol>
+<symbol id="i-led" viewBox="0 0 24 24" fill="currentColor"><path d="M9 21h6v-1H9zM12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></symbol>
+<symbol id="i-print" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h10v5H7zM5 8h14a2 2 0 012 2v6h-4v6H7v-6H3v-6a2 2 0 012-2zm4 10h6v4H9z"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22zm-1 7h2v7h-2zm0 9h2v2h-2z"/></symbol>
+<symbol id="i-net" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5 15 17a4.6 4.6 0 00-6 0zM12 13c1.8 0 3.5.7 4.8 1.9l2-2.4A10.6 10.6 0 0012 9.7c-2.6 0-5 1-6.8 2.8l2 2.4A6.9 6.9 0 0112 13zm0-7c3.3 0 6.4 1.3 8.7 3.5l2-2.4A15.9 15.9 0 0012 2.7 15.9 15.9 0 001.3 7.1l2 2.4A12.6 12.6 0 0112 6z"/></symbol>
+<symbol id="i-sys" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8a4 4 0 100 8 4 4 0 000-8zm9.4 4a7.5 7.5 0 01-.1 1.2l2 1.6-2 3.4-2.4-1a7.5 7.5 0 01-2 1.2l-.4 2.6h-4l-.4-2.6a7.5 7.5 0 01-2-1.2l-2.4 1-2-3.4 2-1.6a7.5 7.5 0 010-2.4l-2-1.6 2-3.4 2.4 1a7.5 7.5 0 012-1.2L10.5 3h4l.4 2.6a7.5 7.5 0 012 1.2l2.4-1 2 3.4-2 1.6c.06.4.1.8.1 1.2z"/></symbol>
+</defs></svg>
+
+<header id="hdr">
+  <img id="logo" src="/blled.svg" alt="BLLED">
+  <div id="brand"><b>BLLED</b><span id="hostline">connecting…</span></div>
+  <div id="hdrright">
+    <span id="livewrap"><span id="livedot" class="dot"></span><span id="livetxt">…</span></span>
+  </div>
+</header>
+
+<div id="banner" hidden>
+  <span id="bannertxt">Network settings changed — restart the controller to apply them.</span>
+  <button class="btn sm" id="b-restart">Restart now</button>
+  <button class="btn sm" id="b-dismiss">Dismiss</button>
+</div>
+
+<nav id="tabs" role="tablist"></nav>
+
+<main>
+  <!-- ============================ DASHBOARD ============================ -->
+  <section id="s-dash" role="tabpanel" aria-label="Dashboard">
+    <div class="card">
+      <header><h2>LED output</h2><span class="sub" id="d-ledmodesub"></span></header>
+      <div class="strip" id="d-strip"><div class="glow"></div><div class="leds" id="d-leds"></div></div>
+      <p class="reason"><span class="dot" id="d-ledsrc"></span><b id="d-reason">—</b><span id="d-outvals" class="mono"></span></p>
+
+      <div class="f">
+        <div class="lbl"><label>Mode</label><button class="tip" data-k="ledMode">?</button></div>
+        <div class="seg" id="d-mode"></div>
+        <p class="desc" id="d-modedesc"></p>
+      </div>
+
+      <div class="f">
+        <div class="lbl"><label for="d-bright">Brightness</label><button class="tip" data-k="brightness">?</button></div>
+        <div class="rng"><input type="range" id="d-bright" min="0" max="100" step="1"><output id="d-brightv">—</output></div>
+      </div>
+
+      <div class="f">
+        <div class="lbl"><label>Manual override</label><button class="tip" data-k="override">?</button></div>
+        <div id="d-ovcolor"></div>
+        <div class="row" style="margin-top:8px">
+          <label class="small muted" for="d-oveffect">Effect</label>
+          <select id="d-oveffect" style="width:auto"></select>
+          <label class="small muted" for="d-ovmins">Minutes</label>
+          <input type="number" id="d-ovmins" min="0" max="1440" step="1" value="10" style="width:74px">
+          <button class="btn pri sm" id="d-ovapply">Apply</button>
+          <button class="btn sm" id="d-ovclear">Clear</button>
+          <button class="btn sm" id="d-identify">Identify</button>
+        </div>
+        <p class="desc">0 minutes = hold until cleared. <span id="d-ovleft"></span></p>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <header><h2 id="d-model">Printer</h2><span class="dot" id="d-pdot"></span><span class="sub" id="d-pconn"></span></header>
+        <div class="ring">
+          <div class="ringwrap">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="trk" cx="50" cy="50" r="42" fill="none" stroke-width="9"></circle>
+              <circle class="bar" id="d-ring" cx="50" cy="50" r="42" fill="none" stroke-width="9" stroke-dasharray="0 264"></circle>
+            </svg>
+            <div class="mid"><b id="d-pct">—</b><small id="d-eta">—</small></div>
+          </div>
+          <dl class="kv" style="flex:1">
+            <dt>State</dt><dd><span class="badge st" id="d-gstate">—</span></dd>
+            <dt>Stage</dt><dd id="d-stage">—</dd>
+            <dt>Layer</dt><dd id="d-layer">—</dd>
+            <dt>Job</dt><dd id="d-job" title="">—</dd>
+            <dt>Printer FW</dt><dd id="d-pfw">—</dd>
+          </dl>
+        </div>
+        <div id="d-temps"></div>
+        <div class="bars" id="d-fans" style="margin-top:10px"></div>
+        <div class="chips" id="d-chips"></div>
+      </div>
+
+      <div class="card">
+        <header><h2>Controller</h2><span class="sub" id="d-fw"></span></header>
+        <dl class="kv">
+          <dt>WiFi</dt><dd id="d-rssi">—</dd>
+        </dl>
+        <div class="meter" style="margin:6px 0 10px"><i id="d-rssibar" style="width:0"></i></div>
+        <dl class="kv">
+          <dt>IP</dt><dd id="d-ip">—</dd>
+          <dt>mDNS</dt><dd id="d-mdns">—</dd>
+          <dt>MAC</dt><dd id="d-mac" class="mono">—</dd>
+          <dt>Uptime</dt><dd id="d-up">—</dd>
+          <dt>Heap free / min</dt><dd id="d-heap">—</dd>
+          <dt>Printer MQTT</dt><dd id="d-mq1">—</dd>
+          <dt>External MQTT</dt><dd id="d-mq2">—</dd>
+        </dl>
+        <h3 style="margin-top:12px">Timers</h3>
+        <dl class="kv">
+          <dt>Finish indication</dt><dd id="d-tfin">—</dd>
+          <dt>Inactivity timeout</dt><dd id="d-tinact">—</dd>
+          <dt>Idle-off / door-off</dt><dd id="d-tflags">—</dd>
+        </dl>
+        <div class="row" style="margin-top:10px">
+          <button class="btn sm" data-act="chamberLight" data-on="1">Chamber light on</button>
+          <button class="btn sm" data-act="chamberLight" data-on="0">off</button>
+          <button class="btn sm" data-act="pushall">Refresh printer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><h2>HMS &amp; errors</h2><span class="sub"><a href="https://wiki.bambulab.com/en/hms/error-code" target="_blank" rel="noopener">HMS code index</a></span></header>
+      <ul class="hms" id="d-hms"></ul>
+      <p class="empty" id="d-hmsempty">No active HMS messages.</p>
+      <p class="desc" id="d-perr"></p>
+    </div>
+  </section>
+
+  <!-- config sections are rendered by app.js -->
+  <section id="s-led" role="tabpanel" aria-label="LED Behaviour" hidden></section>
+  <section id="s-events" role="tabpanel" aria-label="Print Events" hidden></section>
+  <section id="s-alerts" role="tabpanel" aria-label="Errors and Alerts" hidden></section>
+  <section id="s-conn" role="tabpanel" aria-label="Connection" hidden></section>
+
+  <!-- ============================= SYSTEM ============================= -->
+  <section id="s-sys" role="tabpanel" aria-label="System" hidden>
+    <div class="card">
+      <header><h2>Firmware</h2></header>
+      <dl class="kv" id="y-info"></dl>
+    </div>
+
+    <div class="card">
+      <header><h2>Firmware update</h2><button class="tip" data-k="ota">?</button></header>
+      <p class="desc">Upload a <code>.bin</code> built for this board. The controller restarts automatically when the upload verifies.</p>
+      <div class="row" style="margin-top:8px">
+        <input type="file" id="y-fwfile" accept=".bin,application/octet-stream" style="flex:1 1 200px">
+        <button class="btn pri" id="y-fwgo" disabled>Upload &amp; flash</button>
+      </div>
+      <progress id="y-fwprog" value="0" max="100" hidden></progress>
+      <p class="desc" id="y-fwstat"></p>
+    </div>
+
+    <div class="card">
+      <header><h2>Backup &amp; restore</h2><button class="tip" data-k="backup">?</button></header>
+      <div class="row">
+        <a class="btn" id="y-backup" href="/api/config/backup" download="blledconfig.json">Download backup</a>
+        <input type="file" id="y-rsfile" accept=".json,application/json" style="flex:1 1 200px">
+        <button class="btn" id="y-rsgo" disabled>Restore</button>
+      </div>
+      <p class="desc">The backup contains every setting <b>including WiFi password, access code and web login</b>. Keep it private.</p>
+      <p class="desc" id="y-rsstat"></p>
+    </div>
+
+    <div class="card">
+      <header><h2>Debug</h2></header>
+      <div id="y-debug"></div>
+      <div class="savebar">
+        <button class="btn pri" data-save="sys">Save debug options</button>
+        <span class="st" data-st="sys">Saved</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><h2>Maintenance</h2></header>
+      <div class="row">
+        <button class="btn" data-act="restart">Restart controller</button>
+        <button class="btn" data-act="reconnectMqtt">Reconnect printer MQTT</button>
+        <button class="btn dan" id="y-reset">Factory reset…</button>
+      </div>
+      <p class="desc">Factory reset erases the configuration file including WiFi credentials; the controller reboots into its <b>BLLED-Setup</b> access point.</p>
+      <div class="row" style="margin-top:12px">
+        <a class="btn sm" href="/webserial" target="_blank" rel="noopener">Web serial log</a>
+        <a class="btn sm" href="https://github.com/DutchDeveloper/BLLEDController" target="_blank" rel="noopener">Documentation</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav id="bnav" role="tablist"></nav>
+<div id="toasts" aria-live="polite"></div>
+<div id="tip" role="tooltip" hidden></div>
+<div id="modal" hidden><div class="box" role="dialog" aria-modal="true">
+  <h2 id="m-title">Confirm</h2><p id="m-body"></p>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="m-no">Cancel</button><button class="btn dan" id="m-yes">Confirm</button></div>
+</div></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

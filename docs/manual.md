@@ -1,532 +1,548 @@
-## ⚙️ BLLED Web Setup – Configuration Guide
+# BLLED user manual
 
-This document describes each setting available in the BLLED Controller setup interface.
+BLLED drives a five-channel (R, G, B, warm white, cold white) LED strip inside a Bambu Lab
+printer and colours it according to what the printer is doing. This manual covers the v3
+web interface: one page with six sections, reachable at `http://<controller-name>.local/`
+or at the controller's IP address.
 
----
-
-### 🔆 Brightness
-
-**ID:** `brightnessslider`  
-**Type:** Range (0–100)
-
-Adjusts the global brightness level of the LED output.  
-Value is in percent.
-
-- `0` → LEDs off
-- `100` → full brightness (default: `100`)
+Every setting in the interface carries a `?` button with the same explanation you will find
+below — hover it, tap it, or focus it with the keyboard.
 
 ---
 
-### 🧪 Maintenance Mode
+## First-time setup
 
-**ID:** `maintMode`  
-**Type:** Checkbox  
-**Group:** `LEDBehavior`
+A controller with no WiFi credentials starts its own access point called **BLLED-Setup**.
+Join it with a phone or laptop; the captive portal opens the setup page (also at
+`http://192.168.4.1/wifi`). You need four things:
 
-When enabled, LEDs stay **permanently on** in white color, regardless of printer state or WiFi/MQTT connection.
+1. **Your 2.4 GHz WiFi name and password.** The ESP32 has no 5 GHz radio. If your router
+   presents both bands under one name, give the 2.4 GHz band its own SSID.
+2. **The printer's IP address.** Give it a DHCP reservation so it does not move.
+3. **The printer's serial number** — printer screen: *Settings → Device*.
+4. **The LAN access code** — printer screen: *Settings → Network → LAN Only Mode*.
 
-- Always on (white)
-- Overrides all other LED modes
-
----
-
-### 🌈 RGB Cycle Mode
-
-**ID:** `discoMode`  
-**Type:** Checkbox  
-**Group:** `LEDBehavior`
-
-Activates a continuous RGB color transition cycle for decorative purposes.
-
-- LED color cycles smoothly through red/green/blue
-- Used for visual effects or time-lapse printing
+Save, and the controller restarts and joins your network. From then on the full interface
+lives at `http://BLLED.local/` (or whatever you named it).
 
 ---
 
-### 🔁 Replicate State
+## Reading the dashboard
 
-**ID:** `replicateLedState`  
-**Type:** Checkbox  
-**Group:** `LEDBehavior`
+The dashboard is live — it updates over a WebSocket about once a second, and falls back to
+polling if the socket drops. The indicator next to the BLLED logo reads *live*, *polling*,
+*reconnecting* or *no data*.
 
-Replicates the printer’s internal **chamber light state** on the external LEDs.
+**LED output** shows a preview strip painted with the colour the hardware is actually
+emitting: the RGB channels composited with the warm- and cold-white channels, animated with
+the same breathe/blink/rainbow curves the firmware uses. Under it, the exact channel values
+and the **reason** the LED engine picked this colour — "Printing (stage 0)", "Chamber light
+off", "HMS Serious", "Manual override" and so on. When the strip is not doing what you
+expect, that line tells you which rule won.
 
-- When the printer turns its own light on/off, BLLED will follow
-- Must be connected via MQTT
+The same card holds three live controls, which apply immediately and are not part of any
+save button:
 
-#### 🔧 Running Color
+* **Mode** — the same six modes as the LED Behaviour tab, switched straight away.
+* **Brightness** — takes effect as you drag it.
+* **Manual override** — force any colour on the strip for a number of minutes (0 = until you
+  press Clear). Useful for trying a colour before committing to it, and **Identify** blinks
+  the strip white three times so you can tell two controllers apart.
 
-- `runningRGB`: LED color (HEX)
-- `runningWW`: Warm white value (0–255)
-- `runningCW`: Cold white value (0–255)
+**The printer card** shows the progress ring, G-code state and stage name, layer count, job
+name, nozzle/bed/chamber temperatures with their target markers, the four fan speeds, and
+chips for the door, chamber light, work light, SD card, print type, speed level, printer WiFi
+and AMS tray.
 
-These are used while the replicate mode is active and printer light is on.
+**The controller card** shows WiFi signal, addresses, uptime, free heap, both MQTT
+connections and the finish/inactivity countdowns.
 
----
-
-### 🧪 Color Test Mode
-
-**ID:** `showtestcolor`  
-**Type:** Checkbox  
-**Group:** `LEDBehavior`
-
-Forces the LEDs to show a fixed test color at all times, regardless of printer state.  
-Useful for hardware tests and verifying PWM color output.
-
-#### 🔧 Test Color Parameters
-
-- `testRGB`: HEX color value (e.g., `#3F3CFB`)
-- `testWW`: Warm white value (0–255)
-- `testCW`: Cold white value (0–255)
-
----
-
-### 📶 Show WiFi Strength via LEDs
-
-**ID:** `debugwifi`  
-**Type:** Checkbox  
-**Group:** `LEDBehavior`
-
-LEDs display WiFi signal strength as color:
-
-- Green: excellent signal
-- Yellow/orange: medium
-- Red: poor signal
-
-This helps determine ESP placement for optimal reception.
+**HMS & errors** lists every health-management message the printer is reporting, worst
+first, with a severity badge and a link to the Bambu wiki page for that code. The
+**+ ignore** button on a message adds its code to the ignore list and saves immediately —
+that is the quick way to silence a nuisance code that keeps turning the strip red.
 
 ---
 
-### 🎬 Finish Indication
+## Saving changes
 
-**ID:** `finishIndication`  
-**Type:** Checkbox
+Each of the four configuration tabs has its own **Save** button and sends only that tab's
+settings. The button area shows how many unsaved changes the tab is holding, the tab itself
+gets a dot, and **Revert** throws your edits away and reloads what the controller has.
 
-When a print completes, LEDs change to a dedicated **"Finish" color** for visual feedback.
+Changing anything under **Connection** needs a restart: the page raises an orange banner with
+a **Restart now** button. The controller never restarts by itself for a settings change.
 
-#### 🔧 Finish Color Parameters
-
-- `finishColor`: HEX color (e.g., green)
-- `finishWW`: Warm white level
-- `finishCW`: Cold white level
-
-#### ⏱ Finish Exit Behavior
-
-You can configure how and when to leave the "finished" state:
+Password fields show `(unchanged)` when a password is already stored. Type in one only if
+you want to replace it; leave it alone and the stored password is kept.
 
 ---
 
-### 🚪 Exit after Door Action
+## LED Behaviour
 
-**ID:** `finishEndDoor`  
-**Type:** Checkbox  
-**Group:** `finishOption`
+Everything about the strip itself: what mode it runs in, how bright and how fast, and the four base colours.
 
-Leaves the finish state after the door is opened and closed once (or vice versa).
+### LED mode
+
+`ledMode` — `auto` | `maintenance` | `test` | `rainbow` | `wifi` | `off`
+
+Picks what the strip does. Auto follows the printer (the whole point of BLLED); Maintenance and Test hold a fixed colour for working on the machine or checking your wiring; Rainbow is decorative and looks good in timelapses; WiFi strength colours the strip by signal so you can find a good spot for the controller; Off kills the output without unplugging anything.
+
+### Brightness
+
+`brightness` — 0–100 %
+
+Global output level, applied last to every channel. 0 % switches all five channels fully off, 100 % is full PWM duty. Cheap 12 V strips get noticeably warm above ~70 % — if the LEDs flicker or the printer's chamber camera blooms, turn this down before changing colours.
+
+### Fade time
+
+`fadeMs` — 0–5000 ms, default 500
+
+How long the strip takes to cross-fade when the colour changes, in milliseconds. 500 ms feels smooth and hides the constant micro-changes during a print; 0 makes every state change a hard cut, which is what you want if you are filming the LEDs or debugging the state machine.
+
+### Effect speed
+
+`effectSpeed` — 1–10, default 5
+
+Speed of the breathe / blink / rainbow animations, 1 (slow) to 10 (fast). At 5 a breathe cycle takes about 3 seconds and a blink about 0.75 s. Only affects animated effects — it does nothing while everything is set to Solid.
+
+### Follow the printer's chamber light
+
+`followChamberLight` — default on
+
+Mirrors the printer's own chamber light: when you switch the light off in the Bambu app or on the screen, BLLED goes dark too, and comes back when you switch it on. Leave this on if you want one light switch for the whole printer; turn it off if BLLED is your only chamber light and should stay on regardless.
+
+### Running / idle colour
+
+`runningRGB` / `runningWW` / `runningCW` — default warm+cold white 255
+
+The everyday colour — shown while printing, preheating, homing and while the printer sits idle. Warm white plus cold white at full is the neutral default; add RGB only if you want a tint. This is the colour you will be looking at 95 % of the time, so set it first.
+
+### Maintenance colour
+
+`maintenanceRGB` / `maintenanceWW` / `maintenanceCW` — default warm+cold white 255
+
+Colour used while LED mode is Maintenance. Defaults to both whites at maximum for the brightest, most neutral working light, which is what you want when you are clearing a clog or re-seating a hotend.
+
+### Test colour
+
+`testRGB` / `testWW` / `testCW` — default `#3f3cfb`
+
+Colour used while LED mode is Test. A saturated colour (default #3F3CFB) makes it obvious which of the five channels are actually wired: if you see white instead of blue your warm/cold white lines are swapped in.
+
+### Boot / WiFi colour
+
+`wifiRGB` / `wifiWW` / `wifiCW` — default `#ffa500`
+
+Shown during boot while the controller is joining WiFi, and on the setup access point. Default orange. If the strip stays this colour, BLLED never finished connecting — check the Connection tab.
+
+### While printing
+
+`printingVisual` — `solid` | `progress` | `breathe`
+
+How the running colour behaves during an actual print. Solid never changes; Progress blends the running colour towards the finish colour as the print advances, so a glance at the strip tells you roughly how far along it is; Breathe pulses gently so you can see at a distance that the machine is still working.
+
+### While preheating
+
+`preheatVisual` — `solid` | `tempglow`
+
+How the strip looks while the bed or hotend is coming up to temperature. Solid shows the plain running colour; Temp glow ramps the brightness with the temperature and adds a red tint below 30 %, so the strip visibly 'warms up' with the printer.
+
+## Print Events
+
+What the strip does around a print: the finish signal, the idle timeout, the door gesture and the lidar stages.
+
+### Signal a finished print
+
+`finishIndication` — default on
+
+Switches the strip to the finish colour when a print completes, so you can see from across the room that the plate is ready. Turn off if you would rather the LEDs just go back to the normal running colour.
+
+### Finish colour
+
+`finishRGB` / `finishWW` / `finishCW` — default `#00ff00`
+
+Colour shown after a successful print. Default green. Something clearly different from your running colour works best — the whole point is to be noticeable from the doorway.
+
+### Finish effect
+
+`finishEffect` — `solid` | `breathe` | `blink` | `fastblink`
+
+Animation for the finish colour. Solid is calm; Breathe draws the eye without being annoying; Blink is hard to miss if the printer is out of sight. Blinking for a long finish timeout will irritate everyone in the room.
+
+### Leave the finish colour
+
+`finishExitMode` — `door` | `timer`
+
+How the finish colour ends. Door waits until you open or close the printer door — it stays lit until you actually come and collect the print. Timer clears it after a fixed number of minutes. P1 printers have no door sensor, so use Timer there.
+
+### After (minutes)
+
+`finishTimerMins` — 0–999, default 10
+
+Minutes the finish colour stays on before the strip returns to normal, when exit mode is Timer. Ignored in Door mode.
+
+### Switch off when idle
+
+`inactivityEnabled` — default on
+
+Turns the LEDs off after the printer has been idle for a while, so the strip is not burning all night. Any activity from the printer — a new print, a door event, a temperature change — brings the light straight back.
+
+### After (minutes)
+
+`inactivityMins` — 0–999, default 60
+
+Minutes of printer inactivity before the LEDs switch off. The timer restarts on any printer report change and on every door open/close, so it only fires when the machine is genuinely untouched.
+
+### Also control the printer's chamber light
+
+`controlChamberLight` — default off
+
+Lets BLLED drive the printer's own chamber light over MQTT: on when a print starts or the door opens, off when the inactivity timeout fires or the door gesture switches the LEDs off. Handy when BLLED and the chamber light should behave as one lamp; leave off if you control the chamber light from Home Assistant or the app.
+
+### Door double-close toggles the LEDs
+
+`doorToggleEnabled` — default on
+
+Closing the door twice within two seconds toggles the LEDs on or off — a physical light switch that needs no phone. Useful during a timelapse or when a bright chamber annoys you at night. P1 printers have no door sensor, so this never triggers there.
+
+### Go dark when the printer is offline for
+
+`offlineTimeoutSec` — 0–999 s, default 30
+
+How long the strip keeps its last colour after the printer's MQTT connection drops, before going dark. A few seconds of grace avoids flicker on brief WiFi hiccups; longer values keep the light on through a printer reboot.
+
+### P1-series printer
+
+`isP1Printer` — default off
+
+Tells BLLED you have a P1-series printer. P1 machines have no Micro Lidar and no door sensor, so the lidar stage colours and the door gesture do nothing; switching this on sets the lidar stages to plain white so those stages simply stay lit instead of going dark.
+
+### Use dedicated colours for lidar stages
+
+`lidarStagesEnabled` — default on
+
+During bed levelling, nozzle cleaning, extrusion calibration, bed scanning and first-layer inspection the X1's Micro Lidar takes measurements, and bright external light can disturb it. When enabled, the stage colours below are used instead of the running colour (default: off/black) so the strip gets out of the way. P1 printers have no lidar — leave this off.
+
+### 14 — Cleaning nozzle tip
+
+`stage14RGB` / `stage14WW` / `stage14CW` — default off
+
+Colour while the printer is cleaning the nozzle tip (stage 14). Default off, so the lidar sees a dark chamber.
+
+### 1 — Auto bed levelling
+
+`stage1RGB` / `stage1WW` / `stage1CW` — default off
+
+Colour during auto bed levelling (stage 1). Default off — this is the longest lidar stage and the one most affected by stray light.
+
+### 8 — Calibrating extrusion
+
+`stage8RGB` / `stage8WW` / `stage8CW` — default off
+
+Colour while calibrating extrusion / flow (stage 8). Default off.
+
+### 9 — Scanning bed surface
+
+`stage9RGB` / `stage9WW` / `stage9CW` — default off
+
+Colour while scanning the bed surface (stage 9). Default off.
+
+### 10 — Inspecting first layer
+
+`stage10RGB` / `stage10WW` / `stage10CW` — default off
+
+Colour while inspecting the first layer (stage 10). Default off. This stage also fires mid-print, so if you dislike the light dropping out during a print, set a colour here.
+
+## Errors & Alerts
+
+Which faults change the colour, and to what.
+
+### React to errors and HMS messages
+
+`errorDetection` — default on
+
+Master switch for every alert colour on this tab. When off, HMS messages, pauses and error stages are ignored and the strip just keeps showing the normal running colour. Turn it off if you find the red interruptions more annoying than useful.
+
+### Error effect
+
+`errorEffect` — `solid` | `breathe` | `blink` | `fastblink`
+
+Animation used for all error colours (HMS, filament runout, front cover, temperature faults). Blink is the loudest and is genuinely useful for a fatal error you must notice.
+
+### Pause effect
+
+`pauseEffect` — `solid` | `breathe` | `blink` | `fastblink`
+
+Animation used for the pause colours (user pause, G-code pause, first-layer error, nozzle clog). Breathe reads as 'waiting for you' without shouting.
+
+### Paused by user or G-code
+
+`pauseRGB` / `pauseWW` / `pauseCW` — default `#0000ff`
+
+Shown when the print is paused by you or by an M400/G-code pause. Default blue — deliberately not red, because a pause is not a fault.
+
+### First-layer inspection failed
+
+`firstLayerRGB` / `firstLayerWW` / `firstLayerCW` — default `#0000ff`
+
+Shown when the printer pauses because first-layer inspection failed (stage 34). Default blue. Give it its own colour if you want to tell 'come and look at the plate' apart from an ordinary pause.
+
+### Nozzle clog
+
+`nozzleClogRGB` / `nozzleClogWW` / `nozzleClogCW` — default `#0000ff`
+
+Shown when the printer reports a nozzle clog pause (stage 35). Default blue.
+
+### HMS — Fatal
+
+`hmsFatalRGB` / `hmsFatalWW` / `hmsFatalCW` — default `#ff0000`
+
+Shown when the most severe active HMS message is Fatal — the printer has stopped and needs you. Default red; pair it with a blinking error effect if the machine is out of earshot.
+
+### HMS — Serious
+
+`hmsSeriousRGB` / `hmsSeriousWW` / `hmsSeriousCW` — default `#ff0000`
+
+Shown when the most severe active HMS message is Serious — something needs attention but the printer usually keeps going. Default red.
+
+### Also react to Common advisories
+
+`hmsCommonEnabled` — default off
+
+Also react to Common (advisory) HMS messages, such as an AMS humidity warning. Off by default because these are frequent and mostly harmless; enable it with a distinct colour if you want to see advisories without confusing them with real faults.
+
+### HMS — Common
+
+`hmsCommonRGB` / `hmsCommonWW` / `hmsCommonCW` — default `#ffa500`
+
+Colour for Common (advisory) HMS messages when they are enabled. Default orange — pick something that is clearly not your fatal/serious red.
+
+### Filament runout
+
+`filamentRunoutRGB` / `filamentRunoutWW` / `filamentRunoutCW` — default `#ff0000`
+
+Shown when the printer pauses because filament ran out (stage 6 / the matching HMS code). Default red.
+
+### Front cover falling
+
+`frontCoverRGB` / `frontCoverWW` / `frontCoverCW` — default `#ff0000`
+
+Shown when the printer reports the front cover falling off or missing (stage 17). Default red.
+
+### Nozzle temperature fault
+
+`nozzleTempRGB` / `nozzleTempWW` / `nozzleTempCW` — default `#ff0000`
+
+Shown on a nozzle temperature malfunction pause (stage 20). Default red — this is a genuine hardware fault, not a hint.
+
+### Bed temperature fault
+
+`bedTempRGB` / `bedTempWW` / `bedTempCW` — default `#ff0000`
+
+Shown on a heat-bed temperature malfunction pause (stage 21). Default red.
+
+### Ignore list
+
+`hmsIgnoreList` — comma-separated, normalised to upper case with `_` separators
+
+HMS codes that should never change the LED colour, one per line, in the form HMS_0300_1200_0002_0001. Use it for the nuisance code your printer reports constantly (a known AMS quirk, a sensor you have already decided to live with) so it stops turning the strip red. Add codes straight from the Dashboard with the '+ ignore' button.
+
+## Connection
+
+Network credentials and the printer link. **Everything except the external-MQTT block needs a restart**, which the page offers as a banner once you save.
+
+### Network (SSID)
+
+`wifiSSID`
+
+Name of the 2.4 GHz WiFi network the controller joins. The ESP32 has no 5 GHz radio, so if your router hides the 2.4 GHz band behind one combined SSID the join can fail — give the 2.4 GHz band its own name. Changing this needs a restart.
+
+### Password
+
+`wifiPass` — write-only; returned as `********` when set
+
+Password for that network. It is stored in plain text in the config file on the device (and in backups), so treat a backup like a password. Leave blank to keep the existing one.
+
+### Pin to access point (BSSID)
+
+`BSSID`
+
+Pins the controller to one specific access point by MAC address instead of letting it roam. Useful in a mesh where the ESP32 keeps clinging to a distant node; leave empty unless you have that problem.
+
+### Re-scan for the strongest AP on next connect
+
+`rescanWiFiNetwork` — transient, not stored
+
+On the next connect, scan and join the strongest access point for this SSID instead of the pinned BSSID. A one-shot request — it is not stored.
+
+### Controller name
+
+`host` — default `BLLED`
+
+Controller name. It is the mDNS hostname (http://<name>.local), the DHCP name your router shows, and the default external-MQTT topic prefix. Letters, digits and hyphens only; changing it needs a restart and re-publishes Home Assistant discovery.
+
+### Printer IP address
+
+`printerIP`
+
+The Bambu printer's IP address on your LAN. Give the printer a DHCP reservation or a static lease — if it moves, BLLED loses MQTT until you update this (or until auto-update finds it again).
+
+### Follow the printer if its IP changes
+
+`printerAutoIp` — default on
+
+Keep the printer IP up to date automatically: when network discovery sees your serial number at a new address, BLLED follows it. Leave on unless you have two printers and want to be certain BLLED never re-points itself.
+
+### Serial number
+
+`serialNumber`
+
+The printer's serial number, printed on the machine and shown under Settings on the printer's screen. It is the MQTT topic and it also tells BLLED your model (X1C, P1S, A1…). It must match exactly or no reports will arrive.
+
+### LAN access code
+
+`accessCode` — returned in full so you can verify it
+
+The eight-character LAN access code from the printer's network settings screen. It is the MQTT password. Regenerating it on the printer, or a firmware update, invalidates the old one — re-enter it here if the printer stops reporting.
+
+### User name
+
+`webUser`
+
+Optional user name for HTTP Basic authentication on this web interface. Leave both user and password empty to keep the UI open on your LAN. Once set, it protects every route including the API, firmware upload and backup download.
+
+### Password
+
+`webPass` — write-only; returned as `********` when set
+
+Password for the web interface login. Leave blank to keep the current one; clear the user name to disable authentication entirely. If you lock yourself out, a factory reset (or the USB serial provisioning) is the way back in.
+
+### Publish to my own MQTT broker
+
+`mqttExtEnabled` — default off
+
+Publishes everything BLLED knows to your own MQTT broker, and accepts commands back. This is how you get the controller into Home Assistant, Node-RED or any other automation. It is a second, plain (non-TLS) connection and is completely separate from the printer's own MQTT link.
+
+### Broker host
+
+`mqttExtHost`
+
+Hostname or IP of your MQTT broker, e.g. the machine running Mosquitto. Plain TCP only — TLS brokers are not supported.
+
+### Port
+
+`mqttExtPort` — default 1883
+
+Broker port. 1883 is the standard unencrypted MQTT port.
+
+### User name
+
+`mqttExtUser`
+
+Broker user name. Leave empty for an anonymous broker.
+
+### Password
+
+`mqttExtPass` — write-only
+
+Broker password. Leave blank to keep the stored one.
+
+### Base topic
+
+`mqttExtBaseTopic` — default `blled/<host>`
+
+Prefix for every topic BLLED publishes, e.g. blled/livingroom gives blled/livingroom/status and blled/livingroom/set. Leave empty to use blled/<controller name>. Change it if you run more than one BLLED on the same broker.
+
+### Publish interval
+
+`mqttExtIntervalSec` — default 10 s
+
+How often the full status object is republished even when nothing changed, in seconds. Changes are always published within a second regardless; this is the heartbeat. Raise it if you are logging every message to disk.
+
+### Home Assistant auto-discovery
+
+`haDiscovery` — default on
+
+Publishes Home Assistant MQTT discovery messages so the controller appears as a device with a light, sensors and buttons without any YAML. Switching it off removes those entities from Home Assistant again.
+
+### Discovery prefix
+
+`haPrefix` — default `homeassistant`
+
+Discovery topic prefix Home Assistant listens on. 'homeassistant' unless you deliberately changed it in your Home Assistant MQTT settings.
+
+## System
+
+Firmware information, updates, backups and the debug switches.
+
+### Firmware update
+
+`POST /api/update` (multipart field `firmware`)
+
+Uploads a new firmware image over WiFi. Use the .bin built for this board; the wrong image will not boot and needs a USB cable to recover. Settings survive the update.
+
+### Backup & restore
+
+`GET /api/config/backup`, `POST /api/config/restore`
+
+Download the complete configuration as a JSON file, or upload one you saved earlier. Restoring replaces every setting (it is not a merge) and restarts the controller.
+
+### Log state changes
+
+`debugChanges` — default on
+
+Logs only when something actually changes: stage transitions, LED decisions, door events, connection changes. This is the useful one to leave on; it is quiet when the printer is quiet.
+
+### Verbose log
+
+`debugVerbose` — default off
+
+Logs everything to the serial console and the web serial log. Very chatty — the printer sends a report every second — so use it while chasing a problem and turn it back off afterwards.
+
+### Log printer MQTT reports
+
+`debugMqtt` — default off
+
+Logs the filtered contents of every printer MQTT report. Goes to the USB serial port only (never the web log) because it is far too much traffic for a WebSocket. For diagnosing parsing problems.
 
 ---
 
-### ⏲️ Exit after Timeout
+## Other things on the System tab
 
-**ID:** `finishEndTimer`  
-**Type:** Checkbox  
-**Group:** `finishOption`
+**Restart controller** reboots the ESP32; the LEDs go dark for a few seconds and the page
+reconnects on its own.
 
-Leaves the finish state after a user-defined number of minutes.
+**Reconnect printer MQTT** forces a fresh connection to the printer — try it if the printer
+card says disconnected but the printer is plainly reachable.
 
-- `finishTimerMins`: Duration in minutes (e.g., `1` = 1 min)
+**Factory reset** deletes the configuration file, including the WiFi credentials, the access
+code and the web login, and reboots into the **BLLED-Setup** access point. Take a backup
+first if you want to come back.
 
-### 🔕 Inactivity Timeout
-
-**ID:** `inactivityEnabled`  
-**Type:** Checkbox
-
-Automatically turns off the LEDs after a period of printer inactivity.
-
-#### 🔧 Timeout Duration
-
-- `inactivityMins`: Number of minutes without activity before LEDs turn off  
-  *(e.g., `30` = 30 minutes)*
-
-If the door is opened or a new print starts, the LEDs turn back on automatically.
+**Web serial log** opens the live log console at `/webserial`. Turn on *Log state changes*
+above to make it useful.
 
 ---
 
-### 🔦 Control Chamber Light
+## Troubleshooting
 
-**ID:** `controlChamberLight`  
-**Type:** Checkbox
-
-When enabled, the BLLED controller will also send MQTT commands to toggle the printer's internal **chamber light** in sync with:
-
-- 🚪 Door-based LED toggling (on/off)
-- ✅ Print start → turns chamber light on
-- ⏱ Print finish → turns chamber light off after timeout or door interaction
-
-> Requires an active MQTT connection to your Bambu printer.
-
----
-
-### 🖨️ Printer Type: P1 Compatibility
-
-**ID:** `p1Printer`  
-**Type:** Checkbox  
-**Group:** `PrinterOptions`
-
-If checked, adjusts behavior for P1 printers:
-
-- Disables door switch-related features (P1 has no door sensor)
-- Automatically sets all LIDAR-related stage colors to full white (255/255)
+| Symptom | Where to look |
+|---|---|
+| Strip stays orange | The controller never joined WiFi — that is the boot/WiFi colour. Check the SSID and that it is 2.4 GHz. |
+| Strip is dark and the reason says "Chamber light off" | *Follow the printer's chamber light* is on and the printer's own light is off. |
+| Strip is dark and the reason mentions idle | The inactivity timeout fired. Open the door or start a print, or raise *Switch off when idle*. |
+| Strip goes dark mid-print | Lidar stage colours (default off) during bed levelling, nozzle cleaning or first-layer inspection. Give stage 10 a colour if that bothers you. |
+| Strip is red and will not clear | Check the HMS list on the dashboard; use **+ ignore** for a code you have decided to live with, or turn off *React to errors and HMS messages*. |
+| Printer card says disconnected | Wrong IP, wrong serial number, or a regenerated access code. All three are on the Connection tab. |
+| Dashboard says "no data" | The controller is unreachable or rebooting; the page keeps retrying. |
 
 ---
 
-### 🔧 Door Switch Support
-
-**ID:** `doorSwitch`  
-**Type:** Checkbox  
-**Group:** `PrinterOptions`
-
-Enable this if your printer has a door sensor and you want to use:
-
-- Double-close gesture to toggle LEDs
-- Finish indication reset by door interaction
-
-> Automatically disabled when `p1Printer` is active.
-
----
-
-### 🛠️ Stage-Specific LED Colors
-
-For advanced customization, you can assign LED colors to specific printer stages:
-
-- `stage14RGB`, `stage14WW`, `stage14CW` → Cleaning Nozzle  
-- `stage1RGB`,  `stage1WW`,  `stage1CW`  → Bed Leveling  
-- `stage8RGB`,  `stage8WW`,  `stage8CW`  → Calibrating Extrusion  
-- `stage9RGB`,  `stage9WW`,  `stage9CW`  → Scanning Bed Surface  
-- `stage10RGB`, `stage10WW`, `stage10CW` → First Layer Inspection
-
-Default values are OFF or white depending on printer type.
-
-### ❗ Error Detection
-
-**ID:** `errorDetection`  
-**Type:** Checkbox  
-**Group:** `PrinterOptions`
-
-When enabled, BLLED reacts to known printer errors or HMS codes by switching to predefined **alert colors**.
-
----
-
-### 🎨 Custom Error Colors
-
-You can assign LED colors for specific error conditions:
-
-| Condition                     | ID Prefix      | Description                                |
-|------------------------------|----------------|--------------------------------------------|
-| WiFi Scan / Setup            | `wifiRGB`      | Orange by default                          |
-| Pause (User or Gcode)        | `pauseRGB`     | Blue                                        |
-| First Layer Error            | `firstlayerRGB`| Blue                                        |
-| Nozzle Clog                  | `nozzleclogRGB`| Blue                                        |
-| HMS Serious Severity         | `hmsSeriousRGB`| Red                                         |
-| HMS Fatal Severity           | `hmsFatalRGB`  | Red                                         |
-| Filament Runout              | `filamentRunoutRGB` | Red                                  |
-| Front Cover Removed          | `frontCoverRGB`| Red                                         |
-| Nozzle Temperature Fail      | `nozzleTempRGB`| Red                                         |
-| Bed Temperature Fail         | `bedTempRGB`   | Red                                         |
-
-Each has associated warm/cold white (`WW`/`CW`) sliders to fine-tune tone and intensity.
-
----
-
-### 🚫 Ignore Specific HMS Codes
-
-**ID:** `hmsIgnoreList`  
-**Type:** Textarea (multiline)
-
-Enter one or more HMS codes (one per line or comma-separated) to suppress LED error response for those codes.
-
-Example:
-HMS_0300_1200_0002_0001
-HMS_0700_2000_0003_0001
-
-
----
-
-### 🐞 Debug Options
-
-These options help track behavior for diagnostics:
-
-| ID               | Description                                   |
-|------------------|-----------------------------------------------|
-| `debuging`       | Global debug log output                       |
-| `debugingchange` | Logs only when a value or state changes       |
-| `mqttdebug`      | Logs all MQTT messages to WebSerial/Console   |
-
----
-
-### 🧭 Navigation Buttons
-
-Located at the bottom of the config page:
-
-| Button              | Target Page           | Description                              |
-|---------------------|------------------------|------------------------------------------|
-| **WiFi & Printer Setup** | `/wifi`              | Configure network and printer credentials |
-| **Firmware Update** | `/fwupdate`           | Upload new firmware                      |
-| **Backup & Restore** | `/backuprestore`      | Save or restore full configuration       |
-| **Web Serial Log**  | `/webserial`          | Open debug log console                   |
-
-
-
-
-
-
-## 💾 Backup & Restore Configuration
-
-Access this page at: http://[device-ip]/backuprestore
-
-Allows you to download or upload the full BLLED configuration (`blledconfig.json`).
-
----
-
-### 📥 Backup Current Config
-
-**Button Label:** `Download Config File`  
-**Action:** Initiates download of the current `blledconfig.json` file from internal storage.
-
-- Includes: WiFi, printer IP, serial number, LED settings, HMS ignores, etc.
-- Format: JSON file, pretty-formatted
-
----
-
-### 📤 Restore Config File
-
-**Form Upload (Drag & Drop or File Picker)**  
-**Action URL:** `/configrestore`  
-**Method:** POST
-
-Uploads a `blledconfig.json` backup file and replaces the current configuration.
-
-- ⚠️ Device will **restart automatically** after upload
-- File is validated for structure and required fields
-- No merge – existing settings will be fully replaced
-
----
-
-## 📡 WiFi & Printer Setup
-
-Access this page at: http://[device-ip]/wifi
-
-
-Use this page to configure the device’s WiFi connection and printer link.
-
----
-
-### 📶 WiFi Network
-
-#### 📥 SSID
-
-**ID:** `ssid`  
-**Type:** Text (required)  
-**Description:**  
-Name of the WiFi network the device should connect to.
-
-#### 🔒 Password
-
-**ID:** `password`  
-**Type:** Password (required)  
-**Description:**  
-WiFi password. Will be stored encrypted in the local config.
-
-> You can view available networks via the 🔍 Scan button.
-
----
-
-### 🖨️ Printer Connection
-
-#### 🌐 Printer IP
-
-**ID:** `printerIP`  
-**Type:** Text  
-**Placeholder:** `e.g. 192.168.1.100`  
-**Description:**  
-IP address of the Bambu printer to receive MQTT status from. Must be reachable on the local network.
-
-#### 🔢 Serial Number
-
-**ID:** `printerSerial`  
-**Type:** Text  
-**Placeholder:** `e.g. BL123456789`  
-**Description:**  
-The unique serial number (USN) of your printer, used in MQTT topic handling.
-
-#### 🔑 Access Code
-
-**ID:** `accessCode`  
-**Type:** Text  
-**Placeholder:** `e.g. Access123`  
-**Description:**  
-Used for MQTT authentication with your printer. Obtain this from the Bambu app or device.
-
----
-
-### 👤 Web Login (Optional)
-
-#### 👥 Username
-
-**ID:** `username`  
-**Type:** Text  
-Default is blank. If set, it will enable HTTP Basic Auth for accessing the web interface.
-
-#### 🔑 Password
-
-**ID:** `userpassword`  
-**Type:** Password  
-Used with the above username for securing access to all pages.
-
----
-
-### 🧪 Test Connection
-
-Button: `Test Printer Connection`  
-Tests MQTT reachability of the printer with the current IP/serial.
-
----
-
-## 🔧 Firmware Update
-
-Access this page at: http://[device-ip]/fwupdate
-
-
-Allows you to upload and install a new firmware binary file (`.bin`) directly to the controller.
-
----
-
-### 📤 Firmware Upload
-
-#### 📄 File Input
-
-**Type:** File upload  
-**Accepted File:** `.bin` (firmware binary)  
-**Form Target:** `/update` (POST)
-
-- Uploads a new firmware image to flash memory  
-- File is verified and written immediately  
-- Progress and status are displayed below
-
-> ⚠️ The device will reboot automatically after a successful update.
-
----
-
-### ⏹ Cancel Button
-
-Cancels the upload process if not yet started.
-
----
-
-### 💡 Tip
-
-Ensure that your binary is built for the correct chip (e.g., ESP32) and compatible with the current hardware revision.
-
-
-## 🖥️ Web Serial Debug Log
-
-Access this page at: http://[device-ip]/webserial
-
-
-This live interface displays system logs and debug messages from the controller in real time – without using a physical USB connection.
-
----
-
-### 🪵 Log Output Console
-
-**Element:** `textarea` (read-only)  
-**Function:** Displays all serial output from the controller, including:
-
-- MQTT messages
-- LED state changes
-- Door sensor triggers
-- WiFi and printer status
-- HMS error parsing results
-
-Output scrolls live as messages are received.
-
----
-
-### 🔧 Controls
-
-| Button                | Function                                 |
-|-----------------------|------------------------------------------|
-| `Clear Console`       | Clears the current log view              |
-| `Copy`               | Copies all visible log contents          |
-| `Pause Log`           | Temporarily pauses real-time updates     |
-| `Send Command` (input + button) | Sends a command string to the controller via WebSerial (if supported) |
-
-> Useful for debugging MQTT, LEDs, and print events in real time.
-
----
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### 🔦 Control Chamber Light
-
-When enabled, the BLLED Controller will automatically control the printer's internal chamber light via MQTT:
-
-- ✅ Turns the chamber light **on** when a print starts  
-- ❌ Turns it **off** after the print finishes (based on timeout or door interaction)  
-- 🔁 Toggles the chamber light together with the LEDs when using the **door double-close gesture**
-
-> This feature requires a working MQTT connection to your Bambu printer.  
-> It will not interfere with manual light control or other automations.
-
-
-### 💾 Backup & Restore Configuration
-
-Use these options to save or restore your current BLLED configuration:
-
-- ✅ **Backup**: Downloads the current configuration (`blledconfig.json`) to your computer  
-- 🔁 **Restore**: Uploads a previously saved configuration to restore all LED and printer settings  
-- 🔒 Includes printer IP, access code, and all LED behaviors
-
-> Useful for transferring settings between devices or keeping a safety copy before updates.
-
----
-
-### ♻️ Factory Reset
-
-Performs a full reset of the BLLED controller:
-
-- ❌ Deletes all saved configuration and WiFi credentials from internal storage  
-- 🔄 Automatically restarts the device into Access Point (setup) mode  
-- 🌐 You’ll need to reconnect and reconfigure via the setup page
-
-**How to trigger:**  
-Open your browser and navigate to: http://[device-ip]/factoryreset
-
-
+## The API
+
+Everything the interface does is a plain HTTP call, so the controller automates well:
+`GET /api/status`, `PUT /api/config` (partial JSON), `POST /api/led`, `POST /api/action`,
+and a WebSocket at `/ws`. The controller can also publish to your own MQTT broker with Home
+Assistant discovery — see the **External MQTT / Home Assistant** block on the Connection tab.
+`docs/API.md` has the full contract.

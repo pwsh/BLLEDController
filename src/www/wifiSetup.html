@@ -1,290 +1,186 @@
-<!DOCTYPE html>
-<html>
-
+<!doctype html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>BLLED WiFi Setup</title>
-    <link rel="stylesheet" href="/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>BLLED setup</title>
+<link rel="icon" href="/favicon.png">
+<!-- Standalone: everything is inlined so this page also renders inside the cut-down
+     browsers Android/iOS use for captive portals, where sub-resources can be blocked.
+     Trimmed copy of style.css — keep the palette in sync. -->
+<style>
+:root{--bg:#0d1117;--bg2:#010409;--surf:#161b22;--surf2:#1c2430;--line:#2b3441;--line2:#3a4553;
+--fg:#e6edf3;--fg2:#9aa7b4;--fg3:#6e7d8c;--acc:#2ec27e;--acc2:#26a56a;--accfg:#04140c;--err:#f05252;--info:#4b9fea}
+@media (prefers-color-scheme:light){:root{--bg:#eef1f5;--bg2:#e2e7ee;--surf:#fff;--surf2:#f4f6f9;--line:#d8dee6;
+--line2:#c2cbd6;--fg:#16202b;--fg2:#56626f;--fg3:#7d8894;--acc:#1a8a54;--acc2:#146e44;--accfg:#fff;--err:#c62828;--info:#1565c0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--line)}
+header img{height:30px}header b{letter-spacing:.06em}
+main{max-width:520px;margin:0 auto;padding:14px}
+h1{font-size:1.2rem;margin:0 0 4px}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.card h2{font-size:1rem;margin:0 0 8px}
+.f{padding:9px 0;border-top:1px solid var(--line)}.f:first-of-type{border-top:0}
+label{display:block;font-size:.87rem;font-weight:500;margin-bottom:5px}
+.desc{font-size:.76rem;color:var(--fg2);margin:5px 0 0}
+input,select{font:inherit;font-size:.88rem;color:var(--fg);background:var(--surf2);border:1px solid var(--line2);
+border-radius:8px;padding:8px 9px;width:100%}
+input:focus-visible,button:focus-visible{outline:2px solid var(--info);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.row input{flex:1 1 170px}
+.btn{font:inherit;font-size:.87rem;cursor:pointer;border-radius:8px;border:1px solid var(--line2);
+background:var(--surf2);color:var(--fg);padding:8px 13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--accfg);font-weight:600;width:100%;padding:11px}
+.btn.sm{padding:5px 10px;font-size:.78rem}
+.pick{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:8px}
+.pick button{display:flex;width:100%;gap:8px;background:none;border:0;border-bottom:1px solid var(--line);
+color:var(--fg);font:inherit;font-size:.83rem;padding:9px 10px;cursor:pointer;text-align:left}
+.pick button:last-child{border-bottom:0}.pick .rs{margin-left:auto;color:var(--fg2);font-size:.75rem}
+#msg{padding:10px 14px;font-size:.85rem;border-radius:8px;margin-bottom:12px;display:none}
+#msg.ok{display:block;background:var(--acc);color:var(--accfg)}
+#msg.err{display:block;background:var(--err);color:#fff}
+.muted{color:var(--fg2);font-size:.8rem}
+</style>
 </head>
-
 <body>
-    <canvas id="particleCanvas" style="background: rgb(20,80,49);"></canvas>
-    <div id="container">
-        <div id="header">
-            <img id="logo" src="/blled.svg" alt="BLLED Logo">
-            <h1>BLLED WiFi Setup</h1>
-        </div>
+<header><img src="/blled.svg" alt=""><b>BLLED</b><span class="muted" style="margin-left:auto">first-time setup</span></header>
+<main>
+  <h1>Connect BLLED</h1>
+  <p class="muted">Point the controller at your WiFi network and your Bambu Lab printer. It restarts when you save and then serves the full interface at <b>http://<span id="hn">blled</span>.local</b>.</p>
 
-        <div id="networks">Loading...</div>
+  <div id="msg"></div>
 
-        <form id="wifiForm">
-            <label for="ssid">SSID</label>
-            <input type="text" id="ssid" autocomplete="off" required>
-            <input type="hidden" id="bssid" name="bssid">
-            <label for="password">Password</label>
-            <input type="password" id="password" autocomplete="new-password" required>
-
-            <label for="deviceName">Controller Name (mDNS)</label>
-            <input type="text" id="deviceName" name="deviceName" maxlength="32" placeholder="BLLED">
-
-            <label for="printerIP">Printer IP</label>
-            <div style="display: flex; gap: 6px; align-items: center;">
-
-                <input type="text" id="printerIP" placeholder="e.g. 192.168.1.100" style="flex: 2;">
-
-                <button type="button" id="openPrinterList" title="Search printer"
-                    style="flex: 1; margin-bottom: 8px; background-color: #28a745; cursor: pointer; display: none; width: 29px; height: 29px; padding: 0;">
-                    Printer Discovery
-                </button>
-            </div>
-
-
-            <label for="printerSerial">Printer Serial Number</label>
-            <input type="text" id="printerSerial" placeholder="e.g. BL123456789">
-
-            <label for="accessCode">Printer Access Code</label>
-            <input type="text" id="accessCode" placeholder="e.g. Access123">
-
-            <label for="webUser">WebUI Security Username</label>
-            <input type="text" id="webUser" placeholder="e.g. admin" autocomplete="new-username">
-
-            <label for="webPass">WebUI Security Password</label>
-            <input type="password" id="webPass" placeholder="e.g. password" autocomplete="new-password">
-
-            <div style="display: flex; gap: 10px; justify-content: space-between;">
-                <button type="submit">Save</button>
-                <button type="button" style="background-color: #6c757d;" onclick="location.href='/'">Back</button>
-            </div>
-        </form>
+  <div class="card">
+    <h2>WiFi</h2>
+    <div class="f">
+      <label for="ssid">Network name (SSID)</label>
+      <div class="row">
+        <input id="ssid" maxlength="32" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+        <button class="btn sm" type="button" id="scan">Scan</button>
+      </div>
+      <div class="pick" id="nets" hidden></div>
+      <p class="desc">The ESP32 has no 5 GHz radio — pick a 2.4 GHz network.</p>
     </div>
-
-    <script src="particleCanvas.js"></script>
-    <div id="toast"><span id="toast-icon">ℹ️</span><span id="toast-msg">Placeholder</span></div>
-    <div id="printerModal" style="
-    display: none;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.4);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-">
-        <div style="
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        max-width: 400px;
-        width: 90%;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    ">
-            <h3 style="margin-top: 0;">Select Printer</h3>
-            <div id="printerList" style="max-height: 300px; overflow-y: auto;"></div>
-            <div style="text-align: right; margin-top: 10px;">
-                <button onclick="closePrinterModal()">Close</button>
-            </div>
-        </div>
+    <div class="f">
+      <label for="pw">Password</label>
+      <div class="row">
+        <input id="pw" type="password" maxlength="64" autocomplete="off">
+        <button class="btn sm" type="button" id="eye">Show</button>
+      </div>
+      <p class="desc">Leave blank for an open network.</p>
     </div>
-    <script>
-        function getSignalSVG(rssi) {
-            let level = 0;
-            if (rssi >= -50) level = 4;
-            else if (rssi >= -60) level = 3;
-            else if (rssi >= -70) level = 2;
-            else level = 1;
+    <div class="f">
+      <label for="host">Controller name</label>
+      <input id="host" maxlength="32" value="BLLED" autocapitalize="off" spellcheck="false">
+      <p class="desc">Used for mDNS (name.local), your router's device list and the MQTT topic prefix.</p>
+    </div>
+  </div>
 
-            return `
-                <svg width="16" height="12" viewBox="0 0 20 16" preserveAspectRatio="xMidYMid meet">
-                    <rect x="0" y="12" width="3" height="4" ${level >= 1 ? 'fill="#444"' : 'fill="#ccc"'}/>
-                    <rect x="5" y="8" width="3" height="8" ${level >= 2 ? 'fill="#444"' : 'fill="#ccc"'}/>
-                    <rect x="10" y="4" width="3" height="12" ${level >= 3 ? 'fill="#444"' : 'fill="#ccc"'}/>
-                    <rect x="15" y="0" width="3" height="16" ${level >= 4 ? 'fill="#444"' : 'fill="#ccc"'}/>
-                </svg>`;
-        }
+  <div class="card">
+    <h2>Printer</h2>
+    <div class="f">
+      <label for="pip">Printer IP address</label>
+      <div class="row">
+        <input id="pip" maxlength="15" placeholder="192.168.1.100" inputmode="decimal">
+        <button class="btn sm" type="button" id="disc">Discover</button>
+      </div>
+      <div class="pick" id="prns" hidden></div>
+      <p class="desc">Discovery only works once the controller is on your network, so you may need to fill this in by hand now and adjust it later.</p>
+    </div>
+    <div class="f">
+      <label for="ser">Serial number</label>
+      <input id="ser" maxlength="15" placeholder="00M09A1234567890" autocapitalize="characters" spellcheck="false">
+      <p class="desc">Printer screen: Settings &rarr; Device. It selects the MQTT topic and tells BLLED your model.</p>
+    </div>
+    <div class="f">
+      <label for="ac">LAN access code</label>
+      <div class="row">
+        <input id="ac" maxlength="8" type="password" autocomplete="off" spellcheck="false">
+        <button class="btn sm" type="button" id="eye2">Show</button>
+      </div>
+      <p class="desc">Printer screen: Settings &rarr; Network &rarr; LAN Only Mode. This is the MQTT password.</p>
+    </div>
+  </div>
 
-        function getSignalPercent(rssi) {
-            let percent = Math.max(0, Math.min(100, 2 * (rssi + 100)));
-            return `${percent}%`;
-        }
+  <button class="btn pri" id="save">Save &amp; restart</button>
+  <p class="desc" style="text-align:center">After the restart this access point disappears and the controller joins your WiFi.</p>
+</main>
 
-        function getLockIcon(enc) {
-            return enc ? "🔒" : "🔓";
-        }
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+function msg(t,k){var m=$("#msg");m.textContent=t;m.className=k||"";}
+function api(p,o){return fetch(p,o||{}).then(function(r){
+  var ct=r.headers.get("content-type")||"";
+  return (ct.indexOf("json")>=0?r.json():r.text()).then(function(b){
+    if(!r.ok)throw new Error((b&&b.error)||("HTTP "+r.status));return b;});});}
 
-        function alertToast(type, message) {
-            const toast = document.getElementById("toast");
-            const icon = document.getElementById("toast-icon");
-            const msg = document.getElementById("toast-msg");
+/* Prefill from the current config (works both in AP mode and over the LAN). */
+api("/api/config").then(function(c){
+  $("#ssid").value=c.wifiSSID||"";$("#host").value=c.host||"BLLED";
+  $("#pip").value=c.printerIP||"";$("#ser").value=c.serialNumber||"";
+  $("#ac").value=(c.accessCode&&c.accessCode!=="********")?c.accessCode:"";
+  $("#hn").textContent=(c.host||"BLLED").toLowerCase();
+}).catch(function(){});
+$("#host").oninput=function(){$("#hn").textContent=(this.value||"BLLED").toLowerCase();};
 
-            let iconChar = "ℹ️";
-            let color = "#333";
+function toggle(btn,inp){btn.onclick=function(){var p=inp.type==="password";inp.type=p?"text":"password";btn.textContent=p?"Hide":"Show";};}
+toggle($("#eye"),$("#pw"));toggle($("#eye2"),$("#ac"));
 
-            switch (type.toLowerCase()) {
-                case "success":
-                    iconChar = "✅";
-                    color = "#28a745";
-                    break;
-                case "error":
-                    iconChar = "❌";
-                    color = "#dc3545";
-                    break;
-                case "warning":
-                    iconChar = "⚠️";
-                    color = "#ffc107";
-                    break;
-                case "info":
-                default:
-                    iconChar = "ℹ️";
-                    color = "#17a2b8";
-            }
+$("#scan").onclick=function(){
+  var b=this,l=$("#nets"),n=0;
+  b.disabled=true;l.hidden=false;l.innerHTML='<div class="muted" style="padding:9px 10px">Scanning…</div>';
+  (function poll(){api("/api/wifi/scan").then(function(r){
+    if(r.scanning&&++n<12)return setTimeout(poll,1500);
+    b.disabled=false;var ns=r.networks||[];
+    if(!ns.length){l.innerHTML='<div class="muted" style="padding:9px 10px">No networks found.</div>';return;}
+    l.innerHTML="";ns.forEach(function(x){
+      var e=document.createElement("button");e.type="button";
+      e.innerHTML='<span></span><span class="rs"></span>';
+      e.firstChild.textContent=(x.secure?"🔒 ":"")+x.ssid;
+      e.lastChild.textContent=x.rssi+" dBm";
+      e.onclick=function(){$("#ssid").value=x.ssid;l.hidden=true;$("#pw").focus();};
+      l.appendChild(e);});
+  }).catch(function(e){b.disabled=false;l.innerHTML='<div style="padding:9px 10px;color:var(--err)">'+e.message+'</div>';});})();
+};
 
-            toast.style.backgroundColor = color;
-            icon.textContent = iconChar;
-            msg.textContent = message;
+$("#disc").onclick=function(){
+  var b=this,l=$("#prns"),n=0;
+  b.disabled=true;l.hidden=false;l.innerHTML='<div class="muted" style="padding:9px 10px">Searching…</div>';
+  api("/api/action",{method:"POST",headers:{"Content-Type":"application/json"},body:'{"action":"discover"}'})
+   .catch(function(){}).then(function(){
+    (function poll(){api("/api/printers").then(function(r){
+      var ps=Array.isArray(r)?r:(r.printers||[]);
+      if(!ps.length&&++n<8)return setTimeout(poll,1500);
+      b.disabled=false;
+      if(!ps.length){l.innerHTML='<div class="muted" style="padding:9px 10px">No printers found. Enter the IP by hand.</div>';return;}
+      l.innerHTML="";ps.forEach(function(p){
+        var e=document.createElement("button");e.type="button";
+        e.innerHTML='<span></span><span class="rs"></span>';
+        e.firstChild.textContent=(p.model||"Bambu")+" · "+p.ip;
+        e.lastChild.textContent=p.usn||"";
+        e.onclick=function(){$("#pip").value=p.ip;if(p.usn&&!$("#ser").value)$("#ser").value=p.usn;l.hidden=true;};
+        l.appendChild(e);});
+    }).catch(function(e){b.disabled=false;l.innerHTML='<div style="padding:9px 10px;color:var(--err)">'+e.message+'</div>';});})();
+  });
+};
 
-            toast.classList.add("show");
-            setTimeout(() => toast.classList.remove("show"), 3000);
-        }
-
-        async function loadNetworks() {
-            try {
-                alertToast("info", "Retrieving network scan, please wait...");
-                const res = await fetch("/wifiScan");
-                const data = await res.json();
-                const container = document.getElementById("networks");
-                container.innerHTML = "";
-
-                data.networks.forEach(net => {
-                    net.bssid = net.bssid || "";
-
-                    const div = document.createElement("div");
-                    div.className = "network";
-                    div.innerHTML = `
-                ${getSignalSVG(net.rssi)} ${getSignalPercent(net.rssi)} ${net.ssid} <span style="font-size: 11px;">(${net.bssid})</span> ${getLockIcon(net.enc)}
-            `;
-                    div.style.cursor = "pointer";
-                    div.style.padding = "4px 8px";
-                    div.style.borderBottom = "1px solid #ddd";
-
-                    div.addEventListener("click", () => {
-                        document.getElementById("ssid").value = net.ssid;
-                        document.getElementById("bssid").value = net.bssid;  // ← BSSID übernehmen
-                    });
-
-                    container.appendChild(div);
-                });
-            } catch (err) {
-                document.getElementById("networks").innerText = "Failed to load networks.";
-                console.error(err);
-                alertToast("error", "Failed getting Network Scan: " + err);
-            }
-        }
-
-
-        document.getElementById("wifiForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const ssid = document.getElementById("ssid").value;
-            const pass = document.getElementById("password").value;
-            const host = document.getElementById("deviceName").value || "BLLED";
-            const bssid = document.getElementById("bssid").value;
-            const printerIP = document.getElementById("printerIP").value;
-            const printerSerial = document.getElementById("printerSerial").value.trim().toUpperCase();
-            const accessCode = document.getElementById("accessCode").value;
-            const webUser = document.getElementById("webUser").value;
-            const webPass = document.getElementById("webPass").value;
-
-            try {
-                const res = await fetch("/submitWiFi", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: `ssid=${encodeURIComponent(ssid)}&pass=${encodeURIComponent(pass)}&bssid=${encodeURIComponent(bssid)}&host=${encodeURIComponent(host)}&printerIP=${encodeURIComponent(printerIP)}&printerSerial=${encodeURIComponent(printerSerial)}&accessCode=${encodeURIComponent(accessCode)}&webUser=${encodeURIComponent(webUser)}&webPass=${encodeURIComponent(webPass)}`
-
-                });
-
-                if (res.ok) {
-                    alertToast("success", "Settings saved. Restarting...");
-                } else {
-                    alertToast("error", "Save failed: " + res.status);
-                }
-            } catch (err) {
-                alertToast("info", "Device is likely restarting.");
-            }
-        });
-
-        async function loadPrinterConfig() {
-            try {
-                const res = await fetch("/config.json");
-                const config = await res.json();
-                document.getElementById("ssid").value = config.ssid || "";
-                document.getElementById("password").value = config.pass || "";
-                document.getElementById("deviceName").value = config.host || "BLLED";
-                document.getElementById("printerIP").value = config.printerIP || "";
-                document.getElementById("printerSerial").value = config.printerSerial || "";
-                if (config.isAPMode) {
-                    document.getElementById("openPrinterList").style.display = "none";
-                } else {
-                    document.getElementById("openPrinterList").style.display = "inline-block";
-                }
-                document.getElementById("accessCode").value = config.accessCode || "";
-                document.getElementById("webUser").value = config.webUser || "";
-                document.getElementById("webPass").value = config.webPass || "";
-            } catch (err) {
-                console.warn("No existing config found or failed to load.");
-            }
-        }
-        loadPrinterConfig();
-        loadNetworks();
-
-        async function loadPrinters() {
-            const list = document.getElementById("printerList");
-            list.innerHTML = "Loading...";
-
-            try {
-                const res = await fetch("/printerList");
-                const printers = await res.json();
-
-                if (printers.length === 0) {
-                    list.innerHTML = "<p>No printers found.</p>";
-                    return;
-                }
-
-                list.innerHTML = "";
-                printers.forEach(printer => {
-                    const div = document.createElement("div");
-                    div.textContent = `${printer.ip} (${printer.usn})`;
-                    div.style.padding = "6px";
-                    div.style.borderBottom = "1px solid #ddd";
-                    div.style.cursor = "pointer";
-
-                    div.addEventListener("click", () => {
-                        document.getElementById("printerIP").value = printer.ip;
-                        document.getElementById("printerSerial").value = printer.usn;
-                        closePrinterModal();
-                        alertToast("success", "Printer selected");
-                    });
-
-                    list.appendChild(div);
-                });
-
-            } catch (err) {
-                list.innerHTML = "<p>Failed to load printers.</p>";
-                console.error(err);
-            }
-        }
-
-        function openPrinterModal() {
-            loadPrinters();
-            document.getElementById("printerModal").style.display = "flex";
-        }
-
-        function closePrinterModal() {
-            document.getElementById("printerModal").style.display = "none";
-        }
-
-        document.getElementById("openPrinterList").addEventListener("click", openPrinterModal);
-
-    </script>
-
+$("#save").onclick=function(){
+  var b=this;
+  if(!$("#ssid").value.trim()){msg("Enter a WiFi network name.","err");return;}
+  var body={wifiSSID:$("#ssid").value.trim(),host:$("#host").value.trim()||"BLLED",
+            printerIP:$("#pip").value.trim(),serialNumber:$("#ser").value.trim().toUpperCase(),
+            accessCode:$("#ac").value.trim()};
+  if($("#pw").value!=="")body.wifiPass=$("#pw").value;
+  b.disabled=true;msg("Saving…","ok");
+  api("/api/config",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+   .then(function(){return api("/api/action",{method:"POST",headers:{"Content-Type":"application/json"},body:'{"action":"restart"}'});})
+   .then(function(){msg("Saved. Restarting — reconnect to your normal WiFi, then open http://"+(body.host.toLowerCase())+".local","ok");})
+   .catch(function(e){msg("Failed: "+e.message,"err");b.disabled=false;});
+};
+})();
+</script>
 </body>
-
 </html>

@@ -51,7 +51,7 @@ save button:
 
 **The printer card** shows the progress ring, G-code state and stage name, layer count, job
 name, nozzle/bed/chamber temperatures with their target markers, the four fan speeds, and
-chips for the door, chamber light, work light, SD card, print type, speed level, printer WiFi
+chips for the door/lid (the printer reports one state for both), chamber light, work light, SD card, print type, speed level, printer WiFi
 and AMS tray with its humidity level — shown on Bambu's A (driest) to E (wettest) scale; the printer
 actually sends an index 1–5 where 5 is dry, which is what the API returns.
 
@@ -181,7 +181,7 @@ Animation for the finish colour. Solid is calm; Breathe draws the eye without be
 
 `finishExitMode` — `door` | `timer`
 
-How the finish colour ends. Door waits until you open or close the printer door — it stays lit until you actually come and collect the print. Timer clears it after a fixed number of minutes. P1 printers have no door sensor, so use Timer there.
+How the finish colour ends. Door waits until you open or close the printer door or top lid (the printer reports one enclosure-open state for both) — it stays lit until you actually come and collect the print. Timer clears it after a fixed number of minutes. P1 printers have no door sensor, so use Timer there.
 
 ### After (minutes)
 
@@ -211,7 +211,7 @@ Lets BLLED drive the printer's own chamber light over MQTT: on when a print star
 
 `doorToggleEnabled` — default on
 
-Closing the door twice within two seconds toggles the LEDs on or off — a physical light switch that needs no phone. Useful during a timelapse or when a bright chamber annoys you at night. P1 printers have no door sensor, so this never triggers there.
+Closing the door (or lid — the printer reports one sensor state for both) twice within two seconds toggles the LEDs on or off — a physical light switch that needs no phone. Useful during a timelapse or when a bright chamber annoys you at night. P1 printers have no door sensor, so this never triggers there.
 
 ### Go dark when the printer is offline for
 

@@ -116,7 +116,7 @@ Live view: what the strip shows right now (and the *reason*, e.g. "Printing (sta
 alert: serious"), a quick mode switch (Auto / Maintenance / Test / Rainbow / WiFi / Off), the brightness
 slider, a manual override colour with a timer, and an *Identify* button that blinks the strip so you
 know which controller you're talking to. Below: the printer card (state, stage, progress, layer,
-time left, temperatures with targets, fans, door, chamber light, AMS, active printer alerts (HMS messages) with
+time left, temperatures with targets, fans, door/lid (the printer reports one enclosure state for both), chamber light, AMS, active printer alerts (HMS messages) with
 links to the Bambu wiki and a one-click *ignore*), the controller card (WiFi signal, IP, uptime,
 memory, MQTT links) and the finish/inactivity timers.
 

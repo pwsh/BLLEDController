@@ -563,7 +563,7 @@ Device block:
 | `sensor` | `_hmshighest` | Printer alert level | `printer.hmsHighest` |
 | `sensor` | `_rssi` | WiFi signal | `device.rssi` dBm, `dev_cla: signal_strength`, diagnostic |
 | `binary_sensor` | `_connected` | Printer connected | `printer.connected`, `dev_cla: connectivity`, diagnostic |
-| `binary_sensor` | `_door` | Door | `printer.doorOpen`, `dev_cla: door` |
+| `binary_sensor` | `_door` | Door / lid | `printer.doorOpen`, `dev_cla: door` |
 | `binary_sensor` | `_chamberlight` | Chamber light | `printer.chamberLight`, `dev_cla: light` |
 | `binary_sensor` | `_finishactive` | Finish indication | `timers.finishActive` |
 | `button` | `_identify` | Identify | `<base>/cmd` ← `IDENTIFY` |

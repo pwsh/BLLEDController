@@ -340,7 +340,7 @@ static const ExtEntity EXT_ENTITIES[] = {
     {E_SENSOR, "rssi", "WiFi signal", "{{ value_json.device.rssi | default(0) }}", "signal_strength", "dBm", "\"stat_cla\":\"measurement\",\"ent_cat\":\"diagnostic\""},
 
     {E_BINARY, "connected", "Printer connected", "{{ 'ON' if value_json.printer.connected else 'OFF' }}", "connectivity", "", "\"ent_cat\":\"diagnostic\""},
-    {E_BINARY, "door", "Door", "{{ 'ON' if value_json.printer.doorOpen else 'OFF' }}", "door", "", ""},
+    {E_BINARY, "door", "Door / lid", "{{ 'ON' if value_json.printer.doorOpen else 'OFF' }}", "door", "", ""},
     {E_BINARY, "chamberlight", "Chamber light", "{{ 'ON' if value_json.printer.chamberLight else 'OFF' }}", "light", "", ""},
     {E_BINARY, "finishactive", "Finish indication", "{{ 'ON' if value_json.timers.finishActive else 'OFF' }}", "", "", "\"ic\":\"mdi:party-popper\""},
 

@@ -106,6 +106,8 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
 * The preheat visual (`preheatVisual=tempglow`, "Heat-up blend") is now a real colour change: it
   blends from a new `preheatColor` (default orange `#FF6A00`) into the running colour as the
   slowest heater approaches its target. The first version only dimmed the white, which was invisible.
+* The X1C sets the `home_flag` "door" bit when either the front door or the top lid is open (verified
+  live), so the UI, tooltips and HA entity now say "door / lid".
 * Any RUNNING stage the ladder does not specifically handle now counts as printing (a real X1C
   reports stage 54 while heating a 120 °C bed, which used to fall through to "No rule"), and the
   preheat visual keys on "a heater is still below its target" rather than on stage 2/7 only.

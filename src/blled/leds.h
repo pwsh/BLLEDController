@@ -11,12 +11,6 @@ const int bluePin = 21;
 const int warmPin = 22;
 const int coldPin = 23;
 
-const int redChannel = 0;
-const int greenChannel = 1;
-const int blueChannel = 2;
-const int warmChannel = 3;
-const int coldChannel = 4;
-
 const int pwmFreq = 5000;
 const int pwmResolution = 8; // 8-bit PWM = 0-255
 
@@ -105,11 +99,11 @@ void tweenToColor(int targetRed, int targetGreen, int targetBlue, int targetWarm
         currentWarm += warmStep;
         currentCold += coldStep;
 
-        ledcWrite(redChannel, currentRed);
-        ledcWrite(greenChannel, currentGreen);
-        ledcWrite(blueChannel, currentBlue);
-        ledcWrite(warmChannel, currentWarm);
-        ledcWrite(coldChannel, currentCold);
+        ledcWrite(redPin, currentRed);
+        ledcWrite(greenPin, currentGreen);
+        ledcWrite(bluePin, currentBlue);
+        ledcWrite(warmPin, currentWarm);
+        ledcWrite(coldPin, currentCold);
         delay(stepTime);
     }
 
@@ -119,11 +113,11 @@ void tweenToColor(int targetRed, int targetGreen, int targetBlue, int targetWarm
     currentWarm = brightenedWarm;
     currentCold = brightenedCold;
 
-    ledcWrite(redChannel, currentRed);
-    ledcWrite(greenChannel, currentGreen);
-    ledcWrite(blueChannel, currentBlue);
-    ledcWrite(warmChannel, currentWarm);
-    ledcWrite(coldChannel, currentCold);
+    ledcWrite(redPin, currentRed);
+    ledcWrite(greenPin, currentGreen);
+    ledcWrite(bluePin, currentBlue);
+    ledcWrite(warmPin, currentWarm);
+    ledcWrite(coldPin, currentCold);
 }
 
 // Helper functions to allow changes colors by using a string or integer hex code
@@ -183,11 +177,11 @@ void RGBCycle()
 
     if (printerVariables.online == false)
     {
-        ledcWrite(redChannel, 0);
-        ledcWrite(greenChannel, 0);
-        ledcWrite(blueChannel, 0);
-        ledcWrite(warmChannel, 0);
-        ledcWrite(coldChannel, 0);
+        ledcWrite(redPin, 0);
+        ledcWrite(greenPin, 0);
+        ledcWrite(bluePin, 0);
+        ledcWrite(warmPin, 0);
+        ledcWrite(coldPin, 0);
         return;
     }
     hue += 0.1;
@@ -204,11 +198,11 @@ void RGBCycle()
 
     // Need to add code so it adjusts to set brightness level
 
-    ledcWrite(redChannel, currentRed);
-    ledcWrite(greenChannel, currentGreen);
-    ledcWrite(blueChannel, currentBlue);
-    ledcWrite(warmChannel, currentWarm);
-    ledcWrite(coldChannel, currentCold);
+    ledcWrite(redPin, currentRed);
+    ledcWrite(greenPin, currentGreen);
+    ledcWrite(bluePin, currentBlue);
+    ledcWrite(warmPin, currentWarm);
+    ledcWrite(coldPin, currentCold);
 }
 
 /* void printLogs(String Desc, COLOR thisColor)
@@ -726,17 +720,12 @@ void setupLeds()
 {
     LogSerial.println(F("Updating from setupleds"));
 
-    ledcSetup(redChannel, pwmFreq, pwmResolution);
-    ledcSetup(greenChannel, pwmFreq, pwmResolution);
-    ledcSetup(blueChannel, pwmFreq, pwmResolution);
-    ledcSetup(warmChannel, pwmFreq, pwmResolution);
-    ledcSetup(coldChannel, pwmFreq, pwmResolution);
-
-    ledcAttachPin(redPin, redChannel);
-    ledcAttachPin(greenPin, greenChannel);
-    ledcAttachPin(bluePin, blueChannel);
-    ledcAttachPin(warmPin, warmChannel);
-    ledcAttachPin(coldPin, coldChannel);
+    // Arduino-ESP32 core 3.x LEDC API: channel is auto-assigned, pin is the handle
+    ledcAttach(redPin, pwmFreq, pwmResolution);
+    ledcAttach(greenPin, pwmFreq, pwmResolution);
+    ledcAttach(bluePin, pwmFreq, pwmResolution);
+    ledcAttach(warmPin, pwmFreq, pwmResolution);
+    ledcAttach(coldPin, pwmFreq, pwmResolution);
 }
 
 void ledsloop()

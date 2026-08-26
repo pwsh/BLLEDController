@@ -100,6 +100,9 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
   transition (a printer that finished earlier no longer lights the finish colour at boot, and the
   initial door position is not counted as a door edge); `/api/status` no longer references a
   stack buffer for `led.reason` (occasional garbage bytes in the response).
+* Wording: "HMS" is now "printer alert" in the UI, manual and README (with HMS — Bambu's Health
+  Management System — named where codes are involved); the dashboard shows AMS humidity as Bambu's
+  A–E level with a tooltip instead of the raw 1–5 index.
 * Serial provisioning accepts `{"resetAuth":true}` to clear a forgotten web-UI password.
 * **AP-mode recovery:** when the device fell back to the setup AP although credentials exist, it
   retries the station connection in the background every 2 minutes (AP+STA for 30 s) and restarts

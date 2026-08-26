@@ -2,7 +2,7 @@
 
 An ESP32 controller that drives a 12 V RGB + warm/cold-white LED strip so its colour tells you what
 your **Bambu Lab** printer (X1 / X1C / X1E / P1P / P1S / A1) is doing — printing, paused, finished,
-filament run-out, HMS errors — by listening to the printer's local MQTT feed. v3 is a ground-up
+filament run-out, printer alerts — by listening to the printer's local MQTT feed. v3 is a ground-up
 rework of the original firmware: same hardware, same wiring, same default colours, new engine,
 new web interface, a REST/WebSocket API and Home Assistant integration.
 
@@ -24,8 +24,8 @@ new web interface, a REST/WebSocket API and Home Assistant integration.
 ## What it does
 
 - **Follows the printer.** The strip is white while idle/printing, dims (or goes dark) during
-  Micro-Lidar stages so it doesn't blind the sensor, turns blue on pause, red on serious/fatal HMS
-  errors, filament run-out, a dropped front cover or a heater fault, and green when a print finishes.
+  Micro-Lidar stages so it doesn't blind the sensor, turns blue on pause, red on serious/fatal printer
+  alerts (Bambu's *HMS* — Health Management System — messages), filament run-out, a dropped front cover or a heater fault, and green when a print finishes.
   Every colour is configurable, with separate RGB and warm/cold-white channels.
 - **State visualisations.** Optional effects: a *progress blend* that shifts the running colour
   toward the finish colour as the print advances, a *temperature glow* while preheating, and
@@ -112,11 +112,11 @@ setting has a **?** with a plain-language explanation; the same texts are collec
 
 ### Dashboard
 
-Live view: what the strip shows right now (and the *reason*, e.g. "Printing (stage 0)" or "HMS
-serious"), a quick mode switch (Auto / Maintenance / Test / Rainbow / WiFi / Off), the brightness
+Live view: what the strip shows right now (and the *reason*, e.g. "Printing (stage 0)" or "Printer
+alert: serious"), a quick mode switch (Auto / Maintenance / Test / Rainbow / WiFi / Off), the brightness
 slider, a manual override colour with a timer, and an *Identify* button that blinks the strip so you
 know which controller you're talking to. Below: the printer card (state, stage, progress, layer,
-time left, temperatures with targets, fans, door, chamber light, AMS, active HMS messages with
+time left, temperatures with targets, fans, door, chamber light, AMS, active printer alerts (HMS messages) with
 links to the Bambu wiki and a one-click *ignore*), the controller card (WiFi signal, IP, uptime,
 memory, MQTT links) and the finish/inactivity timers.
 
@@ -147,8 +147,8 @@ first-layer inspection).
 ### Errors & Alerts
 
 The error-detection master switch, error/pause effects, colours for pause, first-layer error,
-nozzle clog, HMS fatal/serious/(optionally) common, filament run-out, front cover, nozzle and bed
-heater faults, and the HMS ignore list (e.g. to silence a "dirty lidar" advisory).
+nozzle clog, printer alerts (fatal / serious / optionally common), filament run-out, front cover, nozzle and bed
+heater faults, and the alert-code ignore list (e.g. to silence a "dirty lidar" advisory).
 
 <p>
 <img src="docs/screenshots/alerts-1280.png" width="620" alt="Errors and alerts">
@@ -200,7 +200,7 @@ Connection → *External MQTT*: enable it, enter your broker's host/port/user/pa
 - a **light** (turning it on applies a manual override colour, off returns the strip to automatic),
 - a **select** for the LED mode and a **number** for brightness,
 - **sensors**: stage, G-code state, progress, remaining time, layer / total layers, nozzle / bed /
-  chamber temperature, LED reason, highest HMS severity, WiFi signal,
+  chamber temperature, LED reason, printer alert level, WiFi signal,
 - **binary sensors**: printer connected, door open, chamber light, finish indication active,
 - **buttons**: identify, refresh printer state, restart.
 
@@ -218,7 +218,7 @@ normal operation. **Pink** means the controller is in setup-AP mode.
 | Strip stays **pink** | No WiFi credentials, wrong password, or the network wasn't reachable at boot. Join `BLLED_AP` and re-enter the WiFi details. If credentials are stored, the controller keeps retrying in the background and restarts by itself when the network comes back. |
 | Strip **off** after ~30 s, dashboard says *Printer offline* | The printer's MQTT isn't reachable: wrong IP/access code, printer asleep, or the printer firmware requires LAN/Developer mode for third-party MQTT. The controller re-discovers a printer that changed IP automatically (same serial). |
 | Dashboard shows **connected** but nothing changes | Press *Refresh printer* on the dashboard (sends a `pushall`). P1/A1 printers only send changes; v3 asks for a full state on connect, but a printer firmware update can need a nudge. |
-| A **red** strip you don't want | Open the HMS list on the dashboard: *ignore* the code, or switch off *Also react to Common advisories*. |
+| A **red** strip you don't want | Open the printer-alert list on the dashboard: *ignore* the code, or switch off *Also react to Common advisories*. |
 | Can't reach `blled.local` | Some networks block mDNS; use the IP from your router or the one shown in the setup page. |
 | Forgot the web-UI password | Connect over USB, open a serial terminal at 115200 baud and send the line `{"resetAuth":true}` — the controller clears the username/password and restarts. (Factory reset on the System page needs the password.) |
 
@@ -268,7 +268,7 @@ in.
 ```
 src/main.cpp              setup()/loop()
 src/blled/types.h         shared structs, enums, globals, lock macros (the contract between modules)
-src/blled/stages.h        stage / gcode-state / HMS name tables
+src/blled/stages.h        stage / gcode-state / alert (HMS) name tables
 src/blled/leds.h          LED engine + priority ladder
 src/blled/filesystem.h    config load/save/migrate/validate (table-driven, flat JSON)
 src/blled/mqttmanager.h   printer MQTT task, report parser, command queue

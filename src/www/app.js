@@ -73,21 +73,21 @@ var TIPS = {
   stage10Color: "Colour while inspecting the first layer (stage 10). Default off. This stage also fires mid-print, so if you dislike the light dropping out during a print, set a colour here.",
 
   /* --- errors --- */
-  errorDetection: "Master switch for every alert colour on this tab. When off, HMS messages, pauses and error stages are ignored and the strip just keeps showing the normal running colour. Turn it off if you find the red interruptions more annoying than useful.",
-  errorEffect: "Animation used for all error colours (HMS, filament runout, front cover, temperature faults). Blink is the loudest and is genuinely useful for a fatal error you must notice.",
+  errorDetection: "Master switch for every alert colour on this tab. When off, printer alerts (Bambu's HMS — Health Management System — messages), pauses and error stages are ignored and the strip just keeps showing the normal running colour. Turn it off if you find the red interruptions more annoying than useful.",
+  errorEffect: "Animation used for all error colours (printer alerts, filament runout, front cover, temperature faults). Blink is the loudest and is genuinely useful for a fatal error you must notice.",
   pauseEffect: "Animation used for the pause colours (user pause, G-code pause, first-layer error, nozzle clog). Breathe reads as 'waiting for you' without shouting.",
   pauseColor: "Shown when the print is paused by you or by an M400/G-code pause. Default blue — deliberately not red, because a pause is not a fault.",
   firstLayerColor: "Shown when the printer pauses because first-layer inspection failed (stage 34). Default blue. Give it its own colour if you want to tell 'come and look at the plate' apart from an ordinary pause.",
   nozzleClogColor: "Shown when the printer reports a nozzle clog pause (stage 35). Default blue.",
-  hmsSeriousColor: "Shown when the most severe active HMS message is Serious — something needs attention but the printer usually keeps going. Default red.",
-  hmsFatalColor: "Shown when the most severe active HMS message is Fatal — the printer has stopped and needs you. Default red; pair it with a blinking error effect if the machine is out of earshot.",
-  hmsCommonEnabled: "Also react to Common (advisory) HMS messages, such as an AMS humidity warning. Off by default because these are frequent and mostly harmless; enable it with a distinct colour if you want to see advisories without confusing them with real faults.",
-  hmsCommonColor: "Colour for Common (advisory) HMS messages when they are enabled. Default orange — pick something that is clearly not your fatal/serious red.",
-  filamentRunoutColor: "Shown when the printer pauses because filament ran out (stage 6 / the matching HMS code). Default red.",
+  hmsSeriousColor: "Shown when the most severe active printer alert (HMS message) is Serious — something needs attention but the printer usually keeps going. Default red.",
+  hmsFatalColor: "Shown when the most severe active printer alert (HMS message) is Fatal — the printer has stopped and needs you. Default red; pair it with a blinking error effect if the machine is out of earshot.",
+  hmsCommonEnabled: "Also react to Common (advisory) printer alerts, such as an AMS humidity warning. Off by default because these are frequent and mostly harmless; enable it with a distinct colour if you want to see advisories without confusing them with real faults.",
+  hmsCommonColor: "Colour for Common (advisory) printer alerts when they are enabled. Default orange — pick something that is clearly not your fatal/serious red.",
+  filamentRunoutColor: "Shown when the printer pauses because filament ran out (stage 6 / the matching alert code). Default red.",
   frontCoverColor: "Shown when the printer reports the front cover falling off or missing (stage 17). Default red.",
   nozzleTempColor: "Shown on a nozzle temperature malfunction pause (stage 20). Default red — this is a genuine hardware fault, not a hint.",
   bedTempColor: "Shown on a heat-bed temperature malfunction pause (stage 21). Default red.",
-  hmsIgnoreList: "HMS codes that should never change the LED colour, one per line, in the form HMS_0300_1200_0002_0001. Use it for the nuisance code your printer reports constantly (a known AMS quirk, a sensor you have already decided to live with) so it stops turning the strip red. Add codes straight from the Dashboard with the '+ ignore' button.",
+  hmsIgnoreList: "Printer alert codes that should never change the LED colour, one per line, in the form HMS_0300_1200_0002_0001 (HMS is Bambu's Health Management System; the code is shown on the printer screen, in Bambu Studio and on the dashboard here). Use it for the nuisance code your printer reports constantly (a known AMS quirk, a sensor you have already decided to live with) so it stops turning the strip red. Add codes straight from the Dashboard with the '+ ignore' button.",
 
   /* --- connection --- */
   wifiSSID: "Name of the 2.4 GHz WiFi network the controller joins. The ESP32 has no 5 GHz radio, so if your router hides the 2.4 GHz band behind one combined SSID the join can fail — give the 2.4 GHz band its own name. Changing this needs a restart.",
@@ -194,7 +194,7 @@ var SECTIONS = [
 
   { id: "alerts", label: "Errors & Alerts", short: "Alerts", icon: "i-alert", groups: [
     { title: "Detection", fields: [
-      { k: "errorDetection", l: "React to errors and HMS messages", t: "bool" },
+      { k: "errorDetection", l: "React to printer alerts and errors", t: "bool" },
       { k: "errorEffect", l: "Error effect", t: "effect" },
       { k: "pauseEffect", l: "Pause effect", t: "effect" }
     ], when: function (d) { return d.errorDetection; }, always: ["errorDetection"] },
@@ -204,17 +204,17 @@ var SECTIONS = [
       C("nozzleClogColor", "nozzleClog", "Nozzle clog")
     ], when: function (d) { return d.errorDetection; } },
     { title: "Fault colours", fields: [
-      C("hmsFatalColor", "hmsFatal", "HMS — Fatal"),
-      C("hmsSeriousColor", "hmsSerious", "HMS — Serious"),
+      C("hmsFatalColor", "hmsFatal", "Printer alert — Fatal"),
+      C("hmsSeriousColor", "hmsSerious", "Printer alert — Serious"),
       { k: "hmsCommonEnabled", l: "Also react to Common advisories", t: "bool" },
-      (function () { var f = C("hmsCommonColor", "hmsCommon", "HMS — Common");
+      (function () { var f = C("hmsCommonColor", "hmsCommon", "Printer alert — Common");
         f.when = function (d) { return d.hmsCommonEnabled; }; return f; })(),
       C("filamentRunoutColor", "filamentRunout", "Filament runout"),
       C("frontCoverColor", "frontCover", "Front cover falling"),
       C("nozzleTempColor", "nozzleTemp", "Nozzle temperature fault"),
       C("bedTempColor", "bedTemp", "Bed temperature fault")
     ], when: function (d) { return d.errorDetection; } },
-    { title: "Ignored HMS codes", fields: [
+    { title: "Ignored alert codes", fields: [
       { k: "hmsIgnoreList", l: "Ignore list", t: "hms" }
     ] }
   ] },
@@ -539,7 +539,7 @@ function renderField(f, secId) {
     ta.oninput = function () {
       var lines = ta.value.split(/[\n,;\s]+/).map(function (s) { return s.trim().toUpperCase().replace(/-/g, "_"); }).filter(Boolean);
       var bad = lines.filter(function (s) { return !/^HMS(_[0-9A-F]{4}){4}$/.test(s); });
-      err.textContent = bad.length ? "Not a valid HMS code: " + bad.join(", ") : (lines.length + " code" + (lines.length === 1 ? "" : "s") + " ignored");
+      err.textContent = bad.length ? "Not a valid alert code (expected HMS_XXXX_XXXX_XXXX_XXXX): " + bad.join(", ") : (lines.length + " code" + (lines.length === 1 ? "" : "s") + " ignored");
       err.style.color = bad.length ? "var(--err)" : "";
       set(f.k, lines.join(","));
     };
@@ -887,7 +887,7 @@ function renderDash(s) {
 
   /* chips */
   var cw = $("#d-chips"); cw.innerHTML = "";
-  function chip(txt, on, cls) { cw.appendChild(el("span", { class: "chip " + (on ? (cls || "on") : ""), text: txt })); }
+  function chip(txt, on, cls) { return cw.appendChild(el("span", { class: "chip " + (on ? (cls || "on") : ""), text: txt })); }
   chip(p.doorOpen ? "Door open" : "Door closed", p.doorOpen, "hot");
   chip("Chamber light " + (p.chamberLight ? "on" : "off"), p.chamberLight);
   chip("Work light " + (p.workLight ? "on" : "off"), p.workLight);
@@ -895,7 +895,18 @@ function renderDash(s) {
   if (p.printType) chip("Print: " + p.printType, true);
   if (p.speedLevel) chip("Speed " + ["", "Silent", "Standard", "Sport", "Ludicrous"][p.speedLevel], true);
   if (p.wifiSignal) chip("Printer WiFi " + p.wifiSignal + " dBm", p.wifiSignal > -60);
-  if (p.ams && p.ams.present) chip("AMS tray " + (p.ams.trayNow >= 0 ? p.ams.trayNow + 1 : "—") + (p.ams.humidity ? " · hum " + p.ams.humidity : ""), true);
+  if (p.ams && p.ams.present) {
+    // The printer reports AMS humidity as an index 1..5 where 1 = wet and 5 = dry;
+    // Bambu Studio / Handy show the same scale as letters A (driest) .. E (wettest).
+    var hum = p.ams.humidity | 0, humTxt = "", humTip = "";
+    if (hum >= 1 && hum <= 5) {
+      var letter = "EDCBA"[hum - 1], word = ["very humid", "humid", "moderate", "dry", "very dry"][hum - 1];
+      humTxt = " · humidity " + letter + " (" + word + ")";
+      humTip = "AMS humidity level " + letter + " on Bambu's A (driest) to E (wettest) scale (raw index " + hum + "/5). C or worse: check the desiccant.";
+    }
+    var c = chip("AMS tray " + (p.ams.trayNow >= 0 ? p.ams.trayNow + 1 : "—") + humTxt, true);
+    if (c && humTip) c.title = humTip;
+  }
 
   /* controller */
   var rssi = num(d.rssi, -100);

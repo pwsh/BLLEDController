@@ -676,17 +676,17 @@ static void ledDecide(const PrinterState &st, LedDecision &d)
         // HMS: highest severity across the whole list (REVIEW #9)
         if (st.hmsHighestSeverity == 1)
         {
-            ledSetDecision(d, printerConfig.hmsFatalColor, printerConfig.errorEffect, "HMS fatal");
+            ledSetDecision(d, printerConfig.hmsFatalColor, printerConfig.errorEffect, "Printer alert: fatal");
             return;
         }
         if (st.hmsHighestSeverity == 2)
         {
-            ledSetDecision(d, printerConfig.hmsSeriousColor, printerConfig.errorEffect, "HMS serious");
+            ledSetDecision(d, printerConfig.hmsSeriousColor, printerConfig.errorEffect, "Printer alert: serious");
             return;
         }
         if (st.hmsHighestSeverity == 3 && printerConfig.hmsCommonEnabled)
         {
-            ledSetDecision(d, printerConfig.hmsCommonColor, printerConfig.errorEffect, "HMS common");
+            ledSetDecision(d, printerConfig.hmsCommonColor, printerConfig.errorEffect, "Printer alert: common");
             return;
         }
     }
@@ -740,7 +740,7 @@ static void ledDecide(const PrinterState &st, LedDecision &d)
         if (stageColor == NULL && st.overrideStage == 10)
         {
             stageColor = &printerConfig.stage10Color;
-            stageReason = "HMS 0C00: first layer inspection";
+            stageReason = "Alert 0C00: first layer inspection";
         }
         // P1-series printers have no Micro Lidar: never dim for these stages.
         if (stageColor != NULL && !printerConfig.isP1Printer &&

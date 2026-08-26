@@ -115,7 +115,8 @@ Notes:
   `chamber_temper` was null). Everything else always has a value.
 * `stageName` comes from the table in `src/blled/stages.h`; `stage` is the raw `stg_cur`
   (`-1` X1 idle, `255` P1 idle, `-2` offline).
-* `overrideStage` is the stage the HMS code table implies (`999` = none).
+* `ams.humidity` is the printer's humidity **index 1–5 (1 = wet, 5 = dry)**; Bambu's apps show it as letters A (driest) … E (wettest), i.e. letter = `"EDCBA"[index-1]`. `ams.trayColor` is the active tray's colour.
+* `hms` lists the printer's active alerts (Bambu **HMS** = Health Management System; codes and severities as shown on the printer). `overrideStage` is the stage the HMS code table implies (`999` = none).
 * `severity` is `Fatal | Serious | Common | Info`; `hmsHighest` is `None` when the list is empty
   or every entry is ignored. `module` is decoded from the HMS `attr >> 24`.
 * `led.r/g/b/ww/cw` are the **actual PWM values last written** (after fade, effect and
@@ -559,7 +560,7 @@ Device block:
 | `sensor` | `_bedtemp` | Bed temperature | `printer.bedTemp` °C, `dev_cla: temperature` |
 | `sensor` | `_chambertemp` | Chamber temperature | `printer.chamberTemp` °C, `dev_cla: temperature` |
 | `sensor` | `_ledreason` | LED reason | `led.reason` |
-| `sensor` | `_hmshighest` | HMS highest severity | `printer.hmsHighest` |
+| `sensor` | `_hmshighest` | Printer alert level | `printer.hmsHighest` |
 | `sensor` | `_rssi` | WiFi signal | `device.rssi` dBm, `dev_cla: signal_strength`, diagnostic |
 | `binary_sensor` | `_connected` | Printer connected | `printer.connected`, `dev_cla: connectivity`, diagnostic |
 | `binary_sensor` | `_door` | Door | `printer.doorOpen`, `dev_cla: door` |
@@ -583,7 +584,7 @@ mosquitto_sub -h 10.0.42.10 -v -t 'homeassistant/+/blled_+/config'
 
 ```yaml
 automation:
-  - alias: "Flash the printer LEDs red on an HMS fatal error"
+  - alias: "Flash the printer LEDs red on a fatal printer alert"
     trigger:
       - platform: state
         entity_id: sensor.blled_hms_highest_severity

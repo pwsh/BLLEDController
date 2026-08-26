@@ -37,7 +37,7 @@ polling if the socket drops. The indicator next to the BLLED logo reads *live*, 
 emitting: the RGB channels composited with the warm- and cold-white channels, animated with
 the same breathe/blink/rainbow curves the firmware uses. Under it, the exact channel values
 and the **reason** the LED engine picked this colour — "Printing (stage 0)", "Chamber light
-off", "HMS Serious", "Manual override" and so on. When the strip is not doing what you
+off", "Printer alert: serious", "Manual override" and so on. When the strip is not doing what you
 expect, that line tells you which rule won.
 
 The same card holds three live controls, which apply immediately and are not part of any
@@ -52,12 +52,13 @@ save button:
 **The printer card** shows the progress ring, G-code state and stage name, layer count, job
 name, nozzle/bed/chamber temperatures with their target markers, the four fan speeds, and
 chips for the door, chamber light, work light, SD card, print type, speed level, printer WiFi
-and AMS tray.
+and AMS tray with its humidity level — shown on Bambu's A (driest) to E (wettest) scale; the printer
+actually sends an index 1–5 where 5 is dry, which is what the API returns.
 
 **The controller card** shows WiFi signal, addresses, uptime, free heap, both MQTT
 connections and the finish/inactivity countdowns.
 
-**HMS & errors** lists every health-management message the printer is reporting, worst
+**Printer alerts & errors** lists every alert (Bambu's HMS — Health Management System — messages) the printer is reporting, worst
 first, with a severity badge and a link to the Bambu wiki page for that code. The
 **+ ignore** button on a message adds its code to the ignore list and saves immediately —
 that is the quick way to silence a nuisance code that keeps turning the strip red.
@@ -258,17 +259,17 @@ Colour while inspecting the first layer (stage 10). Default off. This stage also
 
 Which faults change the colour, and to what.
 
-### React to errors and HMS messages
+### React to printer alerts and errors
 
 `errorDetection` — default on
 
-Master switch for every alert colour on this tab. When off, HMS messages, pauses and error stages are ignored and the strip just keeps showing the normal running colour. Turn it off if you find the red interruptions more annoying than useful.
+Master switch for every alert colour on this tab. When off, printer alerts (Bambu's HMS — Health Management System — messages), pauses and error stages are ignored and the strip just keeps showing the normal running colour. Turn it off if you find the red interruptions more annoying than useful.
 
 ### Error effect
 
 `errorEffect` — `solid` | `breathe` | `blink` | `fastblink`
 
-Animation used for all error colours (HMS, filament runout, front cover, temperature faults). Blink is the loudest and is genuinely useful for a fatal error you must notice.
+Animation used for all error colours (printer alerts, filament runout, front cover, temperature faults). Blink is the loudest and is genuinely useful for a fatal error you must notice.
 
 ### Pause effect
 
@@ -294,35 +295,35 @@ Shown when the printer pauses because first-layer inspection failed (stage 34). 
 
 Shown when the printer reports a nozzle clog pause (stage 35). Default blue.
 
-### HMS — Fatal
+### Printer alert — Fatal
 
 `hmsFatalRGB` / `hmsFatalWW` / `hmsFatalCW` — default `#ff0000`
 
-Shown when the most severe active HMS message is Fatal — the printer has stopped and needs you. Default red; pair it with a blinking error effect if the machine is out of earshot.
+Shown when the most severe active printer alert (HMS message) is Fatal — the printer has stopped and needs you. Default red; pair it with a blinking error effect if the machine is out of earshot.
 
-### HMS — Serious
+### Printer alert — Serious
 
 `hmsSeriousRGB` / `hmsSeriousWW` / `hmsSeriousCW` — default `#ff0000`
 
-Shown when the most severe active HMS message is Serious — something needs attention but the printer usually keeps going. Default red.
+Shown when the most severe active printer alert (HMS message) is Serious — something needs attention but the printer usually keeps going. Default red.
 
 ### Also react to Common advisories
 
 `hmsCommonEnabled` — default off
 
-Also react to Common (advisory) HMS messages, such as an AMS humidity warning. Off by default because these are frequent and mostly harmless; enable it with a distinct colour if you want to see advisories without confusing them with real faults.
+Also react to Common (advisory) printer alerts, such as an AMS humidity warning. Off by default because these are frequent and mostly harmless; enable it with a distinct colour if you want to see advisories without confusing them with real faults.
 
-### HMS — Common
+### Printer alert — Common
 
 `hmsCommonRGB` / `hmsCommonWW` / `hmsCommonCW` — default `#ffa500`
 
-Colour for Common (advisory) HMS messages when they are enabled. Default orange — pick something that is clearly not your fatal/serious red.
+Colour for Common (advisory) printer alerts when they are enabled. Default orange — pick something that is clearly not your fatal/serious red.
 
 ### Filament runout
 
 `filamentRunoutRGB` / `filamentRunoutWW` / `filamentRunoutCW` — default `#ff0000`
 
-Shown when the printer pauses because filament ran out (stage 6 / the matching HMS code). Default red.
+Shown when the printer pauses because filament ran out (stage 6 / the matching alert code). Default red.
 
 ### Front cover falling
 
@@ -346,7 +347,7 @@ Shown on a heat-bed temperature malfunction pause (stage 21). Default red.
 
 `hmsIgnoreList` — comma-separated, normalised to upper case with `_` separators
 
-HMS codes that should never change the LED colour, one per line, in the form HMS_0300_1200_0002_0001. Use it for the nuisance code your printer reports constantly (a known AMS quirk, a sensor you have already decided to live with) so it stops turning the strip red. Add codes straight from the Dashboard with the '+ ignore' button.
+Printer alert codes that should never change the LED colour, one per line, in the form HMS_0300_1200_0002_0001 (HMS is Bambu's Health Management System; the code is shown on the printer screen, in Bambu Studio and on the dashboard here). Use it for the nuisance code your printer reports constantly (a known AMS quirk, a sensor you have already decided to live with) so it stops turning the strip red. Add codes straight from the Dashboard with the '+ ignore' button.
 
 ## Connection
 
@@ -533,7 +534,7 @@ above to make it useful.
 | Strip is dark and the reason says "Chamber light off" | *Follow the printer's chamber light* is on and the printer's own light is off. |
 | Strip is dark and the reason mentions idle | The inactivity timeout fired. Open the door or start a print, or raise *Switch off when idle*. |
 | Strip goes dark mid-print | Lidar stage colours (default off) during bed levelling, nozzle cleaning or first-layer inspection. Give stage 10 a colour if that bothers you. |
-| Strip is red and will not clear | Check the HMS list on the dashboard; use **+ ignore** for a code you have decided to live with, or turn off *React to errors and HMS messages*. |
+| Strip is red and will not clear | Check the printer-alert list on the dashboard; use **+ ignore** for a code you have decided to live with, or turn off *React to printer alerts and errors*. |
 | Printer card says disconnected | Wrong IP, wrong serial number, or a regenerated access code. All three are on the Connection tab. |
 | Dashboard says "no data" | The controller is unreachable or rebooting; the page keeps retrying. |
 

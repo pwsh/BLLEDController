@@ -336,7 +336,7 @@ static const ExtEntity EXT_ENTITIES[] = {
     {E_SENSOR, "bedtemp", "Bed temperature", "{{ value_json.printer.bedTemp | default(0) }}", "temperature", "\\u00b0C", "\"stat_cla\":\"measurement\",\"sug_dsp_prc\":1"},
     {E_SENSOR, "chambertemp", "Chamber temperature", "{{ value_json.printer.chamberTemp | default(0) }}", "temperature", "\\u00b0C", "\"stat_cla\":\"measurement\",\"sug_dsp_prc\":1"},
     {E_SENSOR, "ledreason", "LED reason", "{{ value_json.led.reason | default('') }}", "", "", "\"ic\":\"mdi:lightbulb-question\""},
-    {E_SENSOR, "hmshighest", "HMS highest severity", "{{ value_json.printer.hmsHighest | default('None') }}", "", "", "\"ic\":\"mdi:alert-circle\""},
+    {E_SENSOR, "hmshighest", "Printer alert level", "{{ value_json.printer.hmsHighest | default('None') }}", "", "", "\"ic\":\"mdi:alert-circle\""},
     {E_SENSOR, "rssi", "WiFi signal", "{{ value_json.device.rssi | default(0) }}", "signal_strength", "dBm", "\"stat_cla\":\"measurement\",\"ent_cat\":\"diagnostic\""},
 
     {E_BINARY, "connected", "Printer connected", "{{ 'ON' if value_json.printer.connected else 'OFF' }}", "connectivity", "", "\"ent_cat\":\"diagnostic\""},

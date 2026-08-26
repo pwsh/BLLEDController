@@ -162,6 +162,7 @@ void setupLeds()
     }
     ledFadeStartMs = millis();
     ledForceWrite = true;
+    ledRuntime.inactivityStartMs = millis(); // idle timer counts from boot, not from 0
 }
 
 // One PWM update: fade -> effect -> brightness -> ledcWrite (only on change).
@@ -248,7 +249,8 @@ static void ledApply(const LedDecision &d)
 
     ledRuntime.progress = d.progress;
 
-    if (strncmp(ledRuntime.reason, d.reason, sizeof(ledRuntime.reason)) != 0)
+    bool reasonChanged = (strncmp(ledRuntime.reason, d.reason, sizeof(ledRuntime.reason)) != 0);
+    if (reasonChanged)
     {
         strlcpy(ledRuntime.reason, d.reason, sizeof(ledRuntime.reason));
         if (printerConfig.debugChanges || printerConfig.debugVerbose)
@@ -258,7 +260,8 @@ static void ledApply(const LedDecision &d)
                              ledEffectToString(d.effect), ledEffectiveBrightness());
         }
     }
-    if (mqttPublishStateChanged)
+    // Only hint the external publisher on a real change (this runs at 20 Hz).
+    if ((!same || reasonChanged) && mqttPublishStateChanged)
         mqttPublishStateChanged();
 }
 
@@ -416,7 +419,7 @@ static void ledUpdateRuntime(const PrinterState &st)
                             st.lastDoorCloseMs >= st.lastDoorOpenMs &&
                             (st.lastDoorCloseMs - st.lastDoorOpenMs) < DOOR_DOUBLE_CLOSE_MS);
 
-        if (printerConfig.doorToggleEnabled && doubleClose)
+        if (printerConfig.doorToggleEnabled && doubleClose && !printerConfig.isP1Printer)
         {
             // closed twice within 2 s -> flip the LED bar (upstream behaviour)
             ledRuntime.doorToggleOff = !ledRuntime.doorToggleOff;
@@ -446,7 +449,8 @@ static void ledUpdateRuntime(const PrinterState &st)
     }
 
     // --- finish timer -------------------------------------------------------
-    if (ledRuntime.finishActive && printerConfig.finishExitMode == FinishExitMode::Timer &&
+    bool finishByTimer = (printerConfig.finishExitMode == FinishExitMode::Timer || printerConfig.isP1Printer);
+    if (ledRuntime.finishActive && finishByTimer &&
         (now - ledRuntime.finishStartMs) > ((unsigned long)printerConfig.finishTimerMins * 60000UL))
     {
         ledRuntime.finishActive = false;
@@ -734,7 +738,9 @@ static void ledDecide(const PrinterState &st, LedDecision &d)
             stageColor = &printerConfig.stage10Color;
             stageReason = "HMS 0C00: first layer inspection";
         }
-        if (stageColor != NULL && (printerConfig.lidarStagesEnabled || !colorIsBlack(*stageColor)))
+        // P1-series printers have no Micro Lidar: never dim for these stages.
+        if (stageColor != NULL && !printerConfig.isP1Printer &&
+            (printerConfig.lidarStagesEnabled || !colorIsBlack(*stageColor)))
         {
             ledSetDecision(d, *stageColor, LedEffect::Solid, stageReason);
             return;

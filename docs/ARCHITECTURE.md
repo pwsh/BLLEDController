@@ -244,7 +244,6 @@ Temperatures are numbers (null when unknown). `wifiSignal` is the printer's own 
 * `GET /api/wifi/scan` → `{"scanning":true}` (starts async scan) or
   `{"networks":[{"ssid":"..","bssid":"..","rssi":-50,"channel":6,"secure":true}]}` sorted by RSSI.
 * `GET /api/info` → static: `{"fw","build","codename","chip","chipRev","cores","flashSize","sketchSize","sketchFree","sdk","pins":{"r":19,"g":18,"b":21,"ww":22,"cw":23},"libs":{...}}`.
-* `GET /api/stages` → `{"stages":{"-1":"Idle",...},"gcodeStates":[...],"hmsSeverity":{"1":"Fatal",...},"ledModes":[...],"effects":[...]}` — used by the UI for tooltips/legends.
 * `POST /api/update` multipart `firmware` → OTA; `{"ok":true}` then restart after 1.5 s.
 
 ### 7.5 WebSocket `/ws`

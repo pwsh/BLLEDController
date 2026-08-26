@@ -595,13 +595,6 @@ class Handler(BaseHTTPRequestHandler):
                 "pins": {"r": 19, "g": 18, "b": 21, "ww": 22, "cw": 23},
                 "libs": {"ArduinoJson": "7.4.2", "PubSubClient": "2.8", "ESPAsyncWebServer": "3.7.10"},
             })
-        if path == "/api/stages":
-            return self.send_json({
-                "stages": {str(k): v for k, v in STAGE_NAMES.items()},
-                "gcodeStates": GCODE_STATES,
-                "hmsSeverity": {str(k): v for k, v in HMS_SEVERITY.items()},
-                "ledModes": ENUMS["ledMode"], "effects": ENUMS["finishEffect"],
-            })
         if path.startswith("/api/"):
             return self.err("not found", 404)
 

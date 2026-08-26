@@ -216,7 +216,7 @@ How long the strip keeps its last colour after the printer's MQTT connection dro
 
 `isP1Printer` — default off
 
-Tells BLLED you have a P1-series printer. P1 machines have no Micro Lidar and no door sensor, so the lidar stage colours and the door gesture do nothing; switching this on sets the lidar stages to plain white so those stages simply stay lit instead of going dark.
+Tells BLLED you have a P1-series printer. P1 machines have no Micro Lidar and no door sensor, so with this on the lidar stage colours are never applied (the running colour stays on), the finish colour always ends by timer, and the door double-close gesture is ignored.
 
 ### Use dedicated colours for lidar stages
 

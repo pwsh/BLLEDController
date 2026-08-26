@@ -36,6 +36,7 @@ IPAddress apIP(192, 168, 4, 1);
 #define WIFI_RETRY_MS 5000UL      // between quick reconnect attempts
 #define WIFI_RESCAN_MS 60000UL    // between full rescans while disconnected
 #define WIFI_SCAN_MAX_AGE_MS 60000UL
+#define WIFI_BOOT_MAX_CHECKS 30     // x 2 s = ~60 s before falling back to AP mode
 
 static int connectionAttempts = 1;
 static int wifimode = 0;
@@ -218,8 +219,16 @@ bool connectToWifi()
     }
 
     wl_status_t status = WiFi.status();
+    int totalChecks = 0;
     while (status != WL_CONNECTED)
     {
+        // Give up after ~60 s across all ladder modes and fall back to the setup
+        // AP (main.cpp retries STA periodically while the AP is up).
+        if (++totalChecks > WIFI_BOOT_MAX_CHECKS)
+        {
+            Serial.println(F("WiFi: giving up for now (timeout)"));
+            return false;
+        }
         if (connectionAttempts > 10)
         {
             WiFi.disconnect();
@@ -258,11 +267,11 @@ bool connectToWifi()
                 Serial.println(F("Bad WiFi credentials"));
                 return false;
             }
-            if (status == WL_DISCONNECTED)
-            {
-                Serial.println(F("Disconnected. (Check low RSSI)"));
-                return false;
-            }
+            // WL_DISCONNECTED is the normal transient state right after
+            // WiFi.begin(); upstream bailed to AP mode here (stranding the
+            // device after a router reboot). Keep trying until the timeout.
+            if (status == WL_CONNECT_FAILED)
+                Serial.println(F("Connect failed (wrong password?) - retrying"));
         }
         delay(2000);
         connectionAttempts++;

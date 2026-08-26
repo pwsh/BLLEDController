@@ -43,5 +43,4 @@ You need Ruby and Bundler for that; nothing else in this repository does.
 Pages are plain Markdown with a short YAML front matter block — `title`, `nav_order`, and `parent`
 for a page that belongs to a section. Links between pages are relative and carry the `.md`
 extension (`[Getting started](../getting-started.md)`), which works both on the published site and
-when reading the files on GitHub. Images are relative too: `screenshots/dashboard-1280.png` from a
-top-level page, `../screenshots/…` from inside a section.
+when reading the files on GitHub. Images use `{{ site.baseurl }}/screenshots/…` so they resolve from any page depth under pretty permalinks.

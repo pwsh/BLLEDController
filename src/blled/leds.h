@@ -380,8 +380,12 @@ static void ledUpdateRuntime(const PrinterState &st)
     // --- gcode_state transitions -------------------------------------------
     if (strcmp(st.gcodeState, ledLastGcodeState) != 0)
     {
-        bool toFinish = (strcmp(st.gcodeState, "FINISH") == 0);
-        bool toRunning = (strcmp(st.gcodeState, "RUNNING") == 0);
+        // The first state we ever see is the printer's *current* state, not a
+        // transition: a printer that finished yesterday must not light up green
+        // at boot (upstream seeded gcodeState="FINISH" for the same reason).
+        bool initial = (ledLastGcodeState[0] == '\0');
+        bool toFinish = !initial && (strcmp(st.gcodeState, "FINISH") == 0);
+        bool toRunning = !initial && (strcmp(st.gcodeState, "RUNNING") == 0);
         strlcpy(ledLastGcodeState, st.gcodeState, sizeof(ledLastGcodeState));
 
         ledRuntime.inactivityStartMs = now;

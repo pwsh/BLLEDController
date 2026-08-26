@@ -343,7 +343,13 @@ static void ParseCallback(char *topic, byte *payload, unsigned int length)
             uint32_t hf = (uint32_t)print["home_flag"].as<int32_t>(); // signed on the wire
             ns.homeFlag = hf;
             bool doorState = (hf & HOME_FLAG_DOOR_OPEN) != 0;
-            if (doorState != ns.doorOpen)
+            static bool doorKnown = false; // the first report tells us the state, not an edge
+            if (!doorKnown)
+            {
+                doorKnown = true;
+                ns.doorOpen = doorState;
+            }
+            else if (doorState != ns.doorOpen)
             {
                 ns.doorOpen = doorState;
                 ns.doorEdgeCount++;

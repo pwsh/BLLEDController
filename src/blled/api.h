@@ -199,7 +199,8 @@ static void apiFillLed(JsonObject led, const LedRuntime &lr, const ApiCfgSnapsho
     led["cw"] = lr.output[4];
     led["brightness"] = cfg.brightness;
     led["effect"] = ledEffectToString(lr.effect);
-    led["reason"] = lr.reason;
+    // lr is a stack snapshot: ArduinoJson keeps const char* by pointer, so copy.
+    led["reason"] = String(lr.reason);
     led["override"] = lr.overrideActive;
     uint32_t remain = 0;
     if (lr.overrideActive && lr.overrideUntilMs != 0 && (long)(lr.overrideUntilMs - now) > 0)

@@ -96,6 +96,10 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
   `/connecttest.txt`, `/ncsi.txt`, `/canonical.html`, `/success.txt`, …) are answered with an
   absolute redirect to `http://192.168.4.1/wifi`, so phones and laptops show the "sign in to
   network" prompt and land on the setup page automatically. DNS TTL lowered to 30 s.
+* First hardware run fixes: the first printer report is treated as the current state, not a
+  transition (a printer that finished earlier no longer lights the finish colour at boot, and the
+  initial door position is not counted as a door edge); `/api/status` no longer references a
+  stack buffer for `led.reason` (occasional garbage bytes in the response).
 * Serial provisioning accepts `{"resetAuth":true}` to clear a forgotten web-UI password.
 * **AP-mode recovery:** when the device fell back to the setup AP although credentials exist, it
   retries the station connection in the background every 2 minutes (AP+STA for 30 s) and restarts

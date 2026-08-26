@@ -18,7 +18,7 @@ have decided to live with.
 </details>
 
 <p>
-<img src="../screenshots/alerts-1280.png" alt="The Errors and Alerts tab" style="max-width:100%">
+<img src="{{ site.baseurl }}/screenshots/alerts-1280.png" alt="The Errors and Alerts tab" style="max-width:100%">
 </p>
 
 ---
@@ -115,5 +115,5 @@ If the strip is red and will not clear:
 More symptoms and fixes: [Troubleshooting](../troubleshooting.md).
 
 <p>
-<img src="../screenshots/alerts-375.png" alt="The Errors and Alerts tab on a phone" width="260">
+<img src="{{ site.baseurl }}/screenshots/alerts-375.png" alt="The Errors and Alerts tab on a phone" width="260">
 </p>

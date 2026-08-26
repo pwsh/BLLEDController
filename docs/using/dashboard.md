@@ -17,7 +17,7 @@ colour?*
 {:toc}
 </details>
 
-![The dashboard just after a print finished — the printer is idle and cooling down, and the door has never been reported](../screenshots/dashboard-1280.png)
+![The dashboard just after a print finished — the printer is idle and cooling down, and the door has never been reported]({{ site.baseurl }}/screenshots/dashboard-1280.png)
 
 It is live. A WebSocket pushes a fresh status about once a second, and the page falls back to
 polling if the socket cannot be opened. The indicator next to the BLLED logo reads **live**,
@@ -53,7 +53,7 @@ the colour, set a number of minutes, and it releases itself when the timer runs 
 it holds until you press **Clear**. It is the quick way to try a colour before committing to it,
 or to use BLLED as a plain lamp for an evening.
 
-![The dashboard with a manual override active and its timer counting down](../screenshots/override-1280.png)
+![The dashboard with a manual override active and its timer counting down]({{ site.baseurl }}/screenshots/override-1280.png)
 
 **Identify** blinks the strip white three times. If you have more than one controller, this is how
 you work out which one the browser tab is pointing at.

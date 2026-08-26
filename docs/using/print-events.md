@@ -18,7 +18,7 @@ during the printer's calibration stages.
 </details>
 
 <p>
-<img src="../screenshots/events-1280.png" alt="The Print Events tab" style="max-width:100%">
+<img src="{{ site.baseurl }}/screenshots/events-1280.png" alt="The Print Events tab" style="max-width:100%">
 </p>
 
 ---
@@ -149,5 +149,5 @@ lidar — leave this off there. Default: **on**.
 > give stage 10 a colour instead of leaving it dark.
 
 <p>
-<img src="../screenshots/events-375.png" alt="The Print Events tab on a phone" width="260">
+<img src="{{ site.baseurl }}/screenshots/events-375.png" alt="The Print Events tab on a phone" width="260">
 </p>

@@ -15,7 +15,7 @@ BLLED's own estimate, and it is worth knowing where it comes from.
 ## What you are looking at
 
 <p>
-<img src="../screenshots/dashboard-1280.png" alt="The printer card at the end of a print: the outer ring at 100 %, the layer gauge at 108 of 108" style="max-width:100%">
+<img src="{{ site.baseurl }}/screenshots/dashboard-1280.png" alt="The printer card at the end of a print: the outer ring at 100 %, the layer gauge at 108 of 108" style="max-width:100%">
 </p>
 
 <p class="fs-3"><em>Captured at the end of a print, so both rings are full. During a print the outer ring tracks the percentage and the inner one cycles once per layer.</em></p>

@@ -16,7 +16,7 @@ nothing goes through the cloud.
 [Install it](getting-started.md){: .btn .btn-primary .mr-2 }
 [Take the tour](using){: .btn }
 
-![The BLLED dashboard, moments after a print finished: 100 % on the outer ring, 108 of 108 layers, the printer cooling down](screenshots/dashboard-1280.png)
+![The BLLED dashboard, moments after a print finished: 100 % on the outer ring, 108 of 108 layers, the printer cooling down]({{ site.baseurl }}/screenshots/dashboard-1280.png)
 
 ---
 

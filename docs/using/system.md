@@ -17,7 +17,7 @@ Firmware information, over-the-air updates, backups, the reset buttons and the l
 </details>
 
 <p>
-<img src="../screenshots/system-1280.png" alt="The System tab" style="max-width:100%">
+<img src="{{ site.baseurl }}/screenshots/system-1280.png" alt="The System tab" style="max-width:100%">
 </p>
 
 ---
@@ -92,5 +92,5 @@ with the **reason** for each LED decision, which makes it the fastest way to und
 you did not expect. Turn on *Log state changes* to make it useful.
 
 <p>
-<img src="../screenshots/system-375.png" alt="The System tab on a phone" width="260">
+<img src="{{ site.baseurl }}/screenshots/system-375.png" alt="The System tab on a phone" width="260">
 </p>

@@ -62,7 +62,7 @@ authentication while the AP is up, which is also why the whole device is unauthe
 mode.
 
 <p>
-<img src="../screenshots/wifisetup-375.png" alt="The captive-portal setup page on a phone (captured from the repository mock server — the /wifi route only exists in AP mode)" width="260">
+<img src="{{ site.baseurl }}/screenshots/wifisetup-375.png" alt="The captive-portal setup page on a phone (captured from the repository mock server — the /wifi route only exists in AP mode)" width="260">
 </p>
 
 ## When it does not work

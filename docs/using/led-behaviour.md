@@ -17,7 +17,7 @@ base colours, and the two optional visualisations.
 {:toc}
 </details>
 
-![The LED Behaviour tab](../screenshots/led-1280.png)
+![The LED Behaviour tab]({{ site.baseurl }}/screenshots/led-1280.png)
 
 ---
 
@@ -129,7 +129,7 @@ This field only appears when *While preheating* is set to **Heat-up blend**.
 
 ## Every setting has a tooltip
 
-![A setting's ? button opened, showing its explanation](../screenshots/tooltip-1280.png)
+![A setting's ? button opened, showing its explanation]({{ site.baseurl }}/screenshots/tooltip-1280.png)
 
 The **?** next to a label opens the same explanation you have just read, right where you need it.
 The full collection is in the [Settings reference](../manual.md).

@@ -114,7 +114,7 @@ More detail, and what to do when it will not co-operate: [Captive portal](guides
 ## 5. Fill in the setup page
 
 <p>
-<img src="screenshots/wifisetup-1280.png" alt="The BLLED setup page, with a WiFi scan list, controller name, and printer IP, serial number and access code fields (captured from the repository mock server, because the setup page only exists while the controller is in AP mode)" style="max-width:100%">
+<img src="{{ site.baseurl }}/screenshots/wifisetup-1280.png" alt="The BLLED setup page, with a WiFi scan list, controller name, and printer IP, serial number and access code fields (captured from the repository mock server, because the setup page only exists while the controller is in AP mode)" style="max-width:100%">
 </p>
 
 1. **WiFi** — pick your 2.4 GHz network from the scan list (or type the name), then the password.
@@ -145,7 +145,7 @@ Now open the interface:
 
 ## 7. First look at the dashboard
 
-![The BLLED dashboard](screenshots/dashboard-1280.png)
+![The BLLED dashboard]({{ site.baseurl }}/screenshots/dashboard-1280.png)
 
 The **LED output** card at the top shows the colour the hardware is emitting right now, and — the
 useful part — the **reason** the engine chose it: *"Printing (stage 0)"*, *"Chamber light off"*,

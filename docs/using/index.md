@@ -14,7 +14,7 @@ Every setting carries a **?** button with a plain-language explanation. Hover it
 it with the keyboard. The same texts are collected in the [Settings reference](../manual.md).
 
 <p>
-<img src="../screenshots/dashboard-375.png" alt="The dashboard on a phone, with the section bar along the bottom" width="260">
+<img src="{{ site.baseurl }}/screenshots/dashboard-375.png" alt="The dashboard on a phone, with the section bar along the bottom" width="260">
 </p>
 
 ## The six sections

@@ -17,7 +17,7 @@ WiFi, the printer, the web login, and the optional link to your own MQTT broker.
 </details>
 
 <p>
-<img src="../screenshots/connection-1280.png" alt="The Connection tab" style="max-width:100%">
+<img src="{{ site.baseurl }}/screenshots/connection-1280.png" alt="The Connection tab" style="max-width:100%">
 </p>
 
 {: .warning }
@@ -145,5 +145,5 @@ Next: [Home Assistant](../guides/home-assistant.md) and
 [MQTT topics & payloads](../guides/mqtt.md).
 
 <p>
-<img src="../screenshots/connection-375.png" alt="The Connection tab on a phone" width="260">
+<img src="{{ site.baseurl }}/screenshots/connection-375.png" alt="The Connection tab on a phone" width="260">
 </p>

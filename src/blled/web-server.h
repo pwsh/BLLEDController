@@ -57,12 +57,26 @@ static uint8_t wsLastOutput[5] = {0, 0, 0, 0, 0};
 // Long-lived assets are versioned by the firmware they are baked into, so a
 // short max-age plus revalidation on reload is the right trade for a device
 // that gets OTA updates.
+// Every asset is baked into the firmware, so one ETag per build is exact: the
+// browser revalidates on each load (cheap 304) and can never keep a script from
+// an older firmware after an OTA update. (max-age caching did exactly that.)
+static const char *STATIC_ETAG = "\"" STRVERSION "-" __DATE__ "-" __TIME__ "\"";
+
 static void sendGz(AsyncWebServerRequest *request, const uint8_t *data, size_t len, const char *mime,
-                   const char *cacheControl = "public, max-age=3600")
+                   const char *cacheControl = "no-cache")
 {
+    if (request->hasHeader("If-None-Match") && request->getHeader("If-None-Match")->value() == STATIC_ETAG)
+    {
+        AsyncWebServerResponse *notModified = request->beginResponse(304);
+        notModified->addHeader("ETag", STATIC_ETAG);
+        notModified->addHeader("Cache-Control", cacheControl);
+        request->send(notModified);
+        return;
+    }
     AsyncWebServerResponse *response = request->beginResponse(200, mime, data, len);
     response->addHeader("Content-Encoding", "gzip");
     response->addHeader("Cache-Control", cacheControl);
+    response->addHeader("ETag", STATIC_ETAG);
     request->send(response);
 }
 
@@ -290,8 +304,8 @@ void setupWebserver()
     webServer.on(AsyncURIMatcher::exact("/wifi"), HTTP_GET, handleWiFiSetupPage);
     webServer.on(AsyncURIMatcher::exact("/wifiSetup.html"), HTTP_GET, handleWiFiSetupPage);
 
-    STATIC_ROUTE("/app.js", app_js, "public, max-age=3600");
-    STATIC_ROUTE("/style.css", style_css, "public, max-age=3600");
+    STATIC_ROUTE("/app.js", app_js, "no-cache");
+    STATIC_ROUTE("/style.css", style_css, "no-cache");
     STATIC_ROUTE("/blled.svg", blled_svg, "public, max-age=86400");
     STATIC_ROUTE("/favicon.png", favicon_png, "public, max-age=86400");
     STATIC_ROUTE("/favicon.ico", favicon_png, "public, max-age=86400");

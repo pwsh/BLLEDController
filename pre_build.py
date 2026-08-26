@@ -80,4 +80,20 @@ def compress_files():
 
     print(f"\n✅ All files combined into: {OUTPUT_HEADER_FILE}")
 
+def check_js_syntax():
+    """A JS syntax error would ship a dead web UI; refuse to build one if node is available."""
+    import shutil, subprocess
+    node = shutil.which("node")
+    if not node:
+        print("(node not found - skipping JS syntax check)")
+        return
+    for js in glob.glob(os.path.join(WWW_DIR, "**", "*.js"), recursive=True):
+        r = subprocess.run([node, "--check", js], capture_output=True, text=True)
+        if r.returncode != 0:
+            print(r.stderr)
+            print(f"\u274c JavaScript syntax error in {js} - build aborted")
+            exit(1)
+        print(f"JS syntax OK: {os.path.relpath(js, WWW_DIR)}")
+
+check_js_syntax()
 compress_files()

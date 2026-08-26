@@ -765,20 +765,32 @@ static void ledDecide(const PrinterState &st, LedDecision &d)
         return;
     }
 
-    // 17 - preheating
-    if (st.stage == 2 || st.stage == 7)
+    // 17 - preheating: the explicit preheat stages (2 bed, 7 hotend), or any
+    // RUNNING preparation stage while a heater is still well below its target
+    // (a real X1C reports e.g. stage 54 while heating a 120 C bed - stage codes
+    // vary by firmware, heater targets do not).
+    bool running = (strcmp(st.gcodeState, "RUNNING") == 0);
+    bool heating = (!isnan(st.nozzleTarget) && st.nozzleTarget > 1.0f && !isnan(st.nozzleTemp) && st.nozzleTemp < st.nozzleTarget - 3.0f) ||
+                   (!isnan(st.bedTarget) && st.bedTarget > 1.0f && !isnan(st.bedTemp) && st.bedTemp < st.bedTarget - 3.0f);
+    bool heatingStage = (st.stage == 2 || st.stage == 7 || st.stage == 49 || st.stage == 54 ||
+                         st.stage == 58 || st.stage == 63 || st.stage == 64);
+    if (heatingStage || (running && st.stage != 0 && heating))
     {
         d.effect = LedEffect::Solid;
         COLOR c = ledPreheatColor(st);
-        ledSetDecision(d, c, d.effect, st.stage == 2 ? "Stage 2: preheating bed" : "Stage 7: heating hotend");
+        if (st.stage == 2)
+            snprintf(buf, sizeof(buf), "Stage 2: preheating bed");
+        else if (st.stage == 7)
+            snprintf(buf, sizeof(buf), "Stage 7: heating hotend");
+        else
+            snprintf(buf, sizeof(buf), "Heating (stage %d: %s)", st.stage, stageName(st.stage));
+        ledSetDecision(d, c, d.effect, buf);
         return;
     }
 
-    // 18 - printing (main print stage or a RUNNING sub-stage)
-    bool runningSubStage = (st.stage == 3 || st.stage == 4 || st.stage == 11 || st.stage == 13 ||
-                            st.stage == 15 || st.stage == 19 || st.stage == 22 || st.stage == 24);
-    if ((st.stage == 0 && strcmp(st.gcodeState, "RUNNING") == 0) ||
-        (runningSubStage && strcmp(st.gcodeState, "RUNNING") == 0))
+    // 18 - printing: stage 0, or any other RUNNING stage that no rule above
+    // claimed (calibration/preparation sub-stages, unknown newer codes).
+    if (running)
     {
         d.effect = LedEffect::Solid;
         COLOR c = ledPrintingColor(st, d);

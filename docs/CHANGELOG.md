@@ -103,6 +103,12 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
 * Wording: "HMS" is now "printer alert" in the UI, manual and README (with HMS — Bambu's Health
   Management System — named where codes are involved); the dashboard shows AMS humidity as Bambu's
   A–E level with a tooltip instead of the raw 1–5 index.
+* Any RUNNING stage the ladder does not specifically handle now counts as printing (a real X1C
+  reports stage 54 while heating a 120 °C bed, which used to fall through to "No rule"), and the
+  preheat visual keys on "a heater is still below its target" rather than on stage 2/7 only.
+* Static web assets are served with a per-build `ETag` and `Cache-Control: no-cache` (browser
+  revalidates, gets a 304): a phone can no longer keep a script from an older firmware after an
+  OTA update. `pre_build.py` refuses to build if a `.js` file has a syntax error (needs `node`).
 * Serial provisioning accepts `{"resetAuth":true}` to clear a forgotten web-UI password.
 * **AP-mode recovery:** when the device fell back to the setup AP although credentials exist, it
   retries the station connection in the background every 2 minutes (AP+STA for 30 s) and restarts

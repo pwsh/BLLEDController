@@ -116,7 +116,7 @@ Live view: what the strip shows right now (and the *reason*, e.g. "Printing (sta
 alert: serious"), a quick mode switch (Auto / Maintenance / Test / Rainbow / WiFi / Off), the brightness
 slider, a manual override colour with a timer, and an *Identify* button that blinks the strip so you
 know which controller you're talking to. Below: the printer card (state, stage, progress, layer,
-time left, temperatures with targets, fans, door/lid (the printer reports one enclosure state for both), chamber light, AMS, active printer alerts (HMS messages) with
+time left, temperatures with targets, fans, door, chamber light, AMS, active printer alerts (HMS messages) with
 links to the Bambu wiki and a one-click *ignore*), the controller card (WiFi signal, IP, uptime,
 memory, MQTT links) and the finish/inactivity timers.
 
@@ -219,6 +219,7 @@ normal operation. **Pink** means the controller is in setup-AP mode.
 | Strip **off** after ~30 s, dashboard says *Printer offline* | The printer's MQTT isn't reachable: wrong IP/access code, printer asleep, or the printer firmware requires LAN/Developer mode for third-party MQTT. The controller re-discovers a printer that changed IP automatically (same serial). |
 | Dashboard shows **connected** but nothing changes | Press *Refresh printer* on the dashboard (sends a `pushall`). P1/A1 printers only send changes; v3 asks for a full state on connect, but a printer firmware update can need a nudge. |
 | A **red** strip you don't want | Open the printer-alert list on the dashboard: *ignore* the code, or switch off *Also react to Common advisories*. |
+| Door features never trigger (finish stays green, no door toggle); dashboard says *door: not reported* | The printer's door switch isn't being actuated — on the X1C it's a small plunger/reed switch at the door edge; check that the door actually presses it when closed (pressing it by hand should flip the dashboard chip within a second). The top lid has no sensor. Until a door change is seen, the controller ends the finish indication by timer automatically. |
 | Can't reach `blled.local` | Some networks block mDNS; use the IP from your router or the one shown in the setup page. |
 | Forgot the web-UI password | Connect over USB, open a serial terminal at 115200 baud and send the line `{"resetAuth":true}` — the controller clears the username/password and restarts. (Factory reset on the System page needs the password.) |
 

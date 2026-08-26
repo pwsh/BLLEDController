@@ -83,7 +83,8 @@ curl -s http://10.0.42.33/api/status | jq
     "nozzleTemp": 220.0, "nozzleTarget": 220.0, "bedTemp": 60.0, "bedTarget": 60.0,
     "chamberTemp": 30.0,
     "fanPart": 100, "fanAux": 0, "fanChamber": 0, "fanHeatbreak": 100,
-    "chamberLight": true, "workLight": false, "doorOpen": false, "sdcard": true,
+    "chamberLight": true, "workLight": false, "doorOpen": false, "doorKnown": true,
+    "sdcard": true,
     "speedLevel": 2, "jobName": "Benchy.3mf", "printType": "local", "printError": 0,
     "wifiSignal": -30,
     "ams": {"present": true, "trayNow": 1, "trayColor": "#FF0000", "humidity": 3},
@@ -122,6 +123,10 @@ Notes:
 * `led.r/g/b/ww/cw` are the **actual PWM values last written** (after fade, effect and
   brightness), so a breathing LED reports a changing value.
 * `led.brightness` is the persisted `brightness` setting, not the momentary effect level.
+* `doorKnown` is `false` until the printer has reported a door change since boot. On an X1C whose door
+  did not actuate its switch when closed the bit never changed; pressing the switch by hand flipped it.
+  While `false` the UI shows a muted *Door: not reported* chip and door-based features fall back to
+  their timers. (The top lid has no sensor.)
 * `wifiSignal` is the *printer's* own RSSI; `device.rssi` is the controller's.
 * `mqtt.*.state` is the raw `PubSubClient::state()` code (`0` connected, negative = error).
 
@@ -563,7 +568,7 @@ Device block:
 | `sensor` | `_hmshighest` | Printer alert level | `printer.hmsHighest` |
 | `sensor` | `_rssi` | WiFi signal | `device.rssi` dBm, `dev_cla: signal_strength`, diagnostic |
 | `binary_sensor` | `_connected` | Printer connected | `printer.connected`, `dev_cla: connectivity`, diagnostic |
-| `binary_sensor` | `_door` | Door / lid | `printer.doorOpen`, `dev_cla: door` |
+| `binary_sensor` | `_door` | Door | `printer.doorOpen`, `dev_cla: door` |
 | `binary_sensor` | `_chamberlight` | Chamber light | `printer.chamberLight`, `dev_cla: light` |
 | `binary_sensor` | `_finishactive` | Finish indication | `timers.finishActive` |
 | `button` | `_identify` | Identify | `<base>/cmd` ← `IDENTIFY` |

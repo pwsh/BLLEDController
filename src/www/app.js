@@ -58,12 +58,12 @@ var TIPS = {
   finishIndication: "Switches the strip to the finish colour when a print completes, so you can see from across the room that the plate is ready. Turn off if you would rather the LEDs just go back to the normal running colour.",
   finishColor: "Colour shown after a successful print. Default green. Something clearly different from your running colour works best — the whole point is to be noticeable from the doorway.",
   finishEffect: "Animation for the finish colour. Solid is calm; Breathe draws the eye without being annoying; Blink is hard to miss if the printer is out of sight. Blinking for a long finish timeout will irritate everyone in the room.",
-  finishExitMode: "How the finish colour ends. Door waits until you open or close the printer door or top lid (the printer reports one enclosure-open state for both) — it stays lit until you actually come and collect the print. Timer clears it after a fixed number of minutes. P1 printers have no door sensor, so use Timer there.",
+  finishExitMode: "How the finish colour ends. Door waits until you open or close the printer door — it stays lit until you actually come and collect the print. Timer clears it after a fixed number of minutes. P1 printers have no door sensor, so use Timer there. If the printer never reports a door change (switch not actuated), the finish indication ends by timer automatically.",
   finishTimerMins: "Minutes the finish colour stays on before the strip returns to normal, when exit mode is Timer. Ignored in Door mode.",
   inactivityEnabled: "Turns the LEDs off after the printer has been idle for a while, so the strip is not burning all night. Any activity from the printer — a new print, a door event, a temperature change — brings the light straight back.",
   inactivityMins: "Minutes of printer inactivity before the LEDs switch off. The timer restarts on any printer report change and on every door open/close, so it only fires when the machine is genuinely untouched.",
   controlChamberLight: "Lets BLLED drive the printer's own chamber light over MQTT: on when a print starts or the door opens, off when the inactivity timeout fires or the door gesture switches the LEDs off. Handy when BLLED and the chamber light should behave as one lamp; leave off if you control the chamber light from Home Assistant or the app.",
-  doorToggleEnabled: "Closing the door (or lid — the printer reports one sensor state for both) twice within two seconds toggles the LEDs on or off — a physical light switch that needs no phone. Useful during a timelapse or when a bright chamber annoys you at night. P1 printers have no door sensor, so this never triggers there.",
+  doorToggleEnabled: "Closing the door twice within two seconds toggles the LEDs on or off — a physical light switch that needs no phone. Useful during a timelapse or when a bright chamber annoys you at night. P1 printers have no door sensor, so this never triggers there. If the printer never reports a door change (switch not actuated), the finish indication ends by timer automatically.",
   offlineTimeoutSec: "How long the strip keeps its last colour after the printer's MQTT connection drops, before going dark. A few seconds of grace avoids flicker on brief WiFi hiccups; longer values keep the light on through a printer reboot.",
   isP1Printer: "Tells BLLED you have a P1-series printer. P1 machines have no Micro Lidar and no door sensor, so with this on the lidar stage colours are never applied (the running colour stays on), the finish colour always ends by timer, and the door double-close gesture is ignored.",
   lidarStagesEnabled: "During bed levelling, nozzle cleaning, extrusion calibration, bed scanning and first-layer inspection the X1's Micro Lidar takes measurements, and bright external light can disturb it. When enabled, the stage colours below are used instead of the running colour (default: off/black) so the strip gets out of the way. P1 printers have no lidar — leave this off.",
@@ -135,7 +135,7 @@ var MODES = [
 var EFFECTS = [["solid", "Solid"], ["breathe", "Breathe"], ["blink", "Blink"], ["fastblink", "Fast blink"]];
 var PVIS = [["solid", "Solid"], ["progress", "Progress blend"], ["breathe", "Breathe"]];
 var HVIS = [["solid", "Solid"], ["tempglow", "Heat-up blend"]];
-var EXITS = [["door", "Door / lid open or close"], ["timer", "After a timer"]];
+var EXITS = [["door", "Door open/close"], ["timer", "After a timer"]];
 
 /* --------------------------------------------------------------- schema */
 function C(k, base, l, d) { return { k: k, base: base, l: l, t: "color", d: d }; }
@@ -853,13 +853,21 @@ function renderDash(s) {
   $("#d-pconn").textContent = p.connected ? ("report " + (p.lastReportSec || 0) + "s ago") : "disconnected";
   $("#d-gstate").textContent = p.gcodeState || "—";
   $("#d-stage").textContent = (p.stageName || "—") + (p.stage !== undefined ? " (" + p.stage + ")" : "");
-  $("#d-layer").textContent = p.totalLayers ? p.layer + " / " + p.totalLayers : (p.layer || "—");
   $("#d-job").textContent = p.jobName || "—"; $("#d-job").title = p.jobName || "";
   $("#d-pfw").textContent = p.fw || "—";
   var pct = num(p.progress, 0);
   $("#d-pct").textContent = pct + "%";
   $("#d-eta").textContent = p.remainingMin ? fmtDur(p.remainingMin * 60) + " left" : "—";
   $("#d-ring").setAttribute("stroke-dasharray", (pct * 2.639).toFixed(1) + " 264");
+
+  /* layer progress: inner ring (r=32, C=201) + the vertical gauge beside it */
+  var tot = num(p.totalLayers, 0), lay = num(p.layer, 0);
+  var lpct = tot > 0 ? Math.round(clamp(lay / tot, 0, 1) * 100) : 0;
+  $("#d-ring2").setAttribute("stroke-dasharray", (lpct * 2.011).toFixed(1) + " 201");
+  $("#d-lg").style.setProperty("--p", String(lpct));
+  $("#d-lknob").textContent = lpct + "%";
+  $("#d-layer").textContent = tot > 0 ? lay + " / " + tot + " layers"
+    : (lay > 0 ? lay + " layers" : "no layer data");
 
   /* temps */
   var tw = $("#d-temps"); tw.innerHTML = "";
@@ -890,8 +898,14 @@ function renderDash(s) {
   /* chips */
   var cw = $("#d-chips"); cw.innerHTML = "";
   function chip(txt, on, cls) { return cw.appendChild(el("span", { class: "chip " + (on ? (cls || "on") : ""), text: txt })); }
-  var dc = chip(p.doorOpen ? "Door / lid open" : "Door / lid closed", p.doorOpen, "hot");
-  if (dc) dc.title = "The printer reports a single enclosure state: open when either the front door or the top lid is open.";
+  /* doorKnown === false: the printer has never reported a door change, so the bit is noise. */
+  var dknown = p.doorKnown !== false;
+  var dc = dknown
+    ? chip(p.doorOpen ? "Door open" : "Door closed", p.doorOpen, "hot")
+    : chip("Door: not reported", false);
+  if (dc) dc.title = dknown
+    ? "The X1C door switch sits at the door edge; the top lid has no sensor of its own."
+    : "No door change seen since the controller started. On the X1C the door switch sits at the door edge - check the door actually presses it when closed (pressing it by hand should flip this chip). The top lid has no sensor. Door-based features fall back to timers meanwhile.";
   chip("Chamber light " + (p.chamberLight ? "on" : "off"), p.chamberLight);
   chip("Work light " + (p.workLight ? "on" : "off"), p.workLight);
   chip(p.sdcard ? "SD card" : "No SD card", p.sdcard);

@@ -239,18 +239,41 @@ input::placeholder { color: var(--fg3); }
 .reason { font-size: .82rem; color: var(--fg2); margin-top: 7px; display: flex; gap: 6px; align-items: center; }
 .reason b { color: var(--fg); font-weight: 600; }
 
-.ring { display: flex; align-items: center; gap: 14px; }
-.ring svg { width: 88px; height: 88px; flex: none; transform: rotate(-90deg); }
+.ring { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.ring .ringwrap svg { width: 100px; height: 100px; flex: none; transform: rotate(-90deg); }
 .ring .trk { stroke: var(--line); }
 .ring .bar { stroke: var(--acc); stroke-linecap: round; transition: stroke-dasharray .4s; }
+.ring .trk2 { stroke: var(--surf2); }
+.ring .bar2 { stroke: var(--info); stroke-linecap: round; transition: stroke-dasharray .4s; }
 .ring .pct { position: absolute; }
-.ringwrap { position: relative; width: 88px; height: 88px; flex: none; }
+.ringwrap { position: relative; width: 100px; height: 100px; flex: none; }
+.ringcol { display: flex; flex-direction: column; align-items: center; flex: none; }
+.rleg { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px 8px; margin: 6px 0 0; font-size: .62rem; color: var(--fg2); }
+.rleg span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.rleg i { width: 8px; height: 8px; border-radius: 2px; }
+.rleg .k1 { background: var(--acc); }
+.rleg .k2 { background: var(--info); }
+
+/* vertical layer gauge: bed glyph at the bottom, top marker at the top, knob at the fill */
+.lg { --lh: 56px; flex: none; width: 58px; display: flex; flex-direction: column; align-items: center; }
+.lg .ltop { width: 16px; height: 2px; border-radius: 1px; background: var(--line2); }
+.lg .ltrk { position: relative; width: 8px; height: var(--lh); margin: 11px 0; border-radius: 999px; background: var(--surf2); border: 1px solid var(--line); }
+.lg .lfill { position: absolute; left: -1px; right: -1px; bottom: -1px; border-radius: 999px; background: var(--info); height: calc(var(--p, 0) * 1%); transition: height .45s ease; }
+.lg .lknob {
+  position: absolute; left: 50%; bottom: -1px; padding: 1px 5px; border-radius: 999px;
+  font-size: .62rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums;
+  background: var(--surf); border: 1.5px solid var(--info); color: var(--info);
+  transform: translate(-50%, 50%) translateY(calc(var(--p, 0) * var(--lh) / -100));
+  transition: transform .45s ease;
+}
+.lg .lbed { width: 16px; height: 16px; color: var(--fg3); fill: currentColor; }
+.lg .lcap { margin-top: 2px; font-size: .62rem; line-height: 1.25; color: var(--fg2); text-align: center; font-variant-numeric: tabular-nums; }
 .ringwrap .mid {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; line-height: 1.05;
 }
 .ringwrap .mid b { font-size: 1.25rem; }
-.ringwrap .mid small { font-size: .64rem; color: var(--fg2); }
+.ringwrap .mid small { font-size: .6rem; color: var(--fg2); white-space: nowrap; }
 
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: .82rem; }
 .kv dt { color: var(--fg2); }

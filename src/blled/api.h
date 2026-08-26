@@ -276,6 +276,7 @@ void buildStatusJson(JsonDocument &doc)
     pr["chamberLight"] = st.chamberLight;
     pr["workLight"] = st.workLight;
     pr["doorOpen"] = st.doorOpen;
+    pr["doorKnown"] = (st.doorEdgeCount > 0); // some X1C firmware never reports the door (bit 23 stuck)
     pr["sdcard"] = st.sdcard;
     pr["speedLevel"] = st.speedLevel;
     pr["jobName"] = st.jobName;

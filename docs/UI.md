@@ -43,6 +43,25 @@ restores the defaults.
 
 `--hms`, `--offset` and `-v` are mock-only conveniences and have no firmware equivalent.
 
+## Layer progress on the dashboard
+
+The printer card draws print and layer progress together and updates both only when a status
+frame arrives — no canvas and no per-frame JS. The existing SVG ring (`#d-ring`, r=42) keeps
+`printer.progress` in the accent colour; a second, thinner concentric ring inside it
+(`#d-ring2`, r=32, circumference 201, `var(--info)`) shows `layer / totalLayers`, and a
+`.rleg` legend plus a `title` on `.ringcol` name the two. `renderDash()` writes one
+`stroke-dasharray` per ring and sets a single custom property `--p` (0–100) on the gauge
+container `#d-lg`; CSS derives everything else from it — the fill is
+`height: calc(var(--p) * 1%)` and the knob is
+`transform: translateY(calc(var(--p) * var(--lh) / -100))`, both with a `.45s` transition, so
+the animation costs the compositor and not the main thread. The vertical gauge (`.lg`) runs
+from the `#i-print` sprite glyph at the bottom (first layer) to a small top marker, with the
+layer percentage on the knob and `layer / total layers` in the caption `#d-layer` — that
+caption replaces the old *Layer* row in the details list. When `totalLayers` is 0 (idle, or a
+printer that never reports it) the inner ring and the gauge sit at 0 and the caption reads
+*no layer data*; the knob keeps a `var(--surf)` background with `var(--info)` text so it stays
+legible in both themes.
+
 ## How tooltips map to config keys
 
 `TIPS` in `app.js` is one flat object keyed by the **`PrinterConfig` field name** from
@@ -101,9 +120,9 @@ $ for f in src/www/*.html src/www/*.js src/www/*.css src/www/*.svg src/www/*.png
     printf '%-28s %6s\n' "$f" "$(gzip -9 -c "$f" | wc -c)"; done
 ```
 
-At the time of writing: `app.js` 20.9 kB, `style.css` 4.2 kB, `index.html` 3.2 kB,
-`wifiSetup.html` 3.8 kB, `webSerialPage.html` 3.4 kB, `favicon.png` 1.0 kB, `blled.svg` 1.0 kB
-— **37.4 kB total**, about 23 kB of headroom.
+At the time of writing: `app.js` 21.3 kB, `style.css` 4.4 kB, `index.html` 3.8 kB,
+`wifiSetup.html` 3.7 kB, `webSerialPage.html` 3.3 kB, `favicon.png` 1.0 kB, `blled.svg` 0.9 kB
+— **38.5 kB total**, about 21 kB of headroom.
 
 ## Screenshots
 

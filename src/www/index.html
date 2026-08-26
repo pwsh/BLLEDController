@@ -92,17 +92,29 @@ window.addEventListener("load", function () {
       <div class="card">
         <header><h2 id="d-model">Printer</h2><span class="dot" id="d-pdot"></span><span class="sub" id="d-pconn"></span></header>
         <div class="ring">
-          <div class="ringwrap">
-            <svg viewBox="0 0 100 100" aria-hidden="true">
-              <circle class="trk" cx="50" cy="50" r="42" fill="none" stroke-width="9"></circle>
-              <circle class="bar" id="d-ring" cx="50" cy="50" r="42" fill="none" stroke-width="9" stroke-dasharray="0 264"></circle>
-            </svg>
-            <div class="mid"><b id="d-pct">—</b><small id="d-eta">—</small></div>
+          <div class="ringcol" title="Outer ring: print progress · inner ring: layer progress">
+            <div class="ringwrap">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="trk" cx="50" cy="50" r="42" fill="none" stroke-width="9"></circle>
+                <circle class="bar" id="d-ring" cx="50" cy="50" r="42" fill="none" stroke-width="9" stroke-dasharray="0 264"></circle>
+                <circle class="trk2" cx="50" cy="50" r="32" fill="none" stroke-width="4"></circle>
+                <circle class="bar2" id="d-ring2" cx="50" cy="50" r="32" fill="none" stroke-width="4" stroke-dasharray="0 201"></circle>
+              </svg>
+              <div class="mid"><b id="d-pct">—</b><small id="d-eta">—</small></div>
+            </div>
+            <p class="rleg"><span><i class="k1"></i>print %</span><span><i class="k2"></i>layers</span></p>
           </div>
-          <dl class="kv" style="flex:1">
+
+          <div class="lg" id="d-lg" title="Layer progress: bottom = first layer, top = last layer">
+            <i class="ltop"></i>
+            <div class="ltrk"><i class="lfill"></i><span class="lknob" id="d-lknob">0%</span></div>
+            <svg class="lbed" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-print"></use></svg>
+            <small class="lcap" id="d-layer">—</small>
+          </div>
+
+          <dl class="kv" style="flex:1 1 160px">
             <dt>State</dt><dd><span class="badge st" id="d-gstate">—</span></dd>
             <dt>Stage</dt><dd id="d-stage">—</dd>
-            <dt>Layer</dt><dd id="d-layer">—</dd>
             <dt>Job</dt><dd id="d-job" title="">—</dd>
             <dt>Printer FW</dt><dd id="d-pfw">—</dd>
           </dl>

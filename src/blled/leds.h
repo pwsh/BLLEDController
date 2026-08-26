@@ -453,7 +453,11 @@ static void ledUpdateRuntime(const PrinterState &st)
     }
 
     // --- finish timer -------------------------------------------------------
-    bool finishByTimer = (printerConfig.finishExitMode == FinishExitMode::Timer || printerConfig.isP1Printer);
+    // Fall back to the timer when the printer has never reported a door edge
+    // (P1 has no sensor; some X1C firmware leaves the door bit stuck) - otherwise
+    // a "finish by door" indication would stay on forever.
+    bool doorNeverSeen = (st.doorEdgeCount == 0);
+    bool finishByTimer = (printerConfig.finishExitMode == FinishExitMode::Timer || printerConfig.isP1Printer || doorNeverSeen);
     if (ledRuntime.finishActive && finishByTimer &&
         (now - ledRuntime.finishStartMs) > ((unsigned long)printerConfig.finishTimerMins * 60000UL))
     {
@@ -463,7 +467,9 @@ static void ledUpdateRuntime(const PrinterState &st)
         if (printerConfig.controlChamberLight)
             ledDriveChamberLight(false);
         if (printerConfig.debugChanges)
-            LogSerial.println(F("[LED] Finish timer expired - idle timer restarted"));
+            LogSerial.println(doorNeverSeen && printerConfig.finishExitMode == FinishExitMode::Door
+                                  ? F("[LED] Finish timer expired (door never reported by this printer) - idle timer restarted")
+                                  : F("[LED] Finish timer expired - idle timer restarted"));
     }
 
     // --- inactivity timeout -------------------------------------------------

@@ -106,8 +106,15 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
 * The preheat visual (`preheatVisual=tempglow`, "Heat-up blend") is now a real colour change: it
   blends from a new `preheatColor` (default orange `#FF6A00`) into the running colour as the
   slowest heater approaches its target. The first version only dimmed the white, which was invisible.
-* The X1C sets the `home_flag` "door" bit when either the front door or the top lid is open (verified
-  live), so the UI, tooltips and HA entity now say "door / lid".
+* **Dashboard layer progress:** a second, thinner ring inside the print-progress ring shows layer
+  progress (`layer / totalLayers`), and a vertical layer gauge next to it (bed glyph at the bottom,
+  fill + knob with the layer percentage, caption `89 / 335 layers`). Pure SVG/CSS, updated only when a
+  status frame arrives.
+* **Door robustness:** the status API exposes `printer.doorKnown` (has a door change ever been seen
+  since boot); the UI shows "door: not reported" until one is; and a finish indication set to end
+  *by door* falls back to the finish timer while the door has never reported, so a printer whose door
+  switch is not actuated (seen on an X1C whose door did not press the switch when closed) can no longer
+  leave the finish colour on forever. The top lid has no sensor; the chip is labelled "Door".
 * Any RUNNING stage the ladder does not specifically handle now counts as printing (a real X1C
   reports stage 54 while heating a 120 °C bed, which used to fall through to "No rule"), and the
   preheat visual keys on "a heater is still below its target" rather than on stage 2/7 only.

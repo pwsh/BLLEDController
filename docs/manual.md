@@ -49,9 +49,19 @@ save button:
   press Clear). Useful for trying a colour before committing to it, and **Identify** blinks
   the strip white three times so you can tell two controllers apart.
 
-**The printer card** shows the progress ring, G-code state and stage name, layer count, job
-name, nozzle/bed/chamber temperatures with their target markers, the four fan speeds, and
-chips for the door/lid (the printer reports one state for both), chamber light, work light, SD card, print type, speed level, printer WiFi
+**The printer card** shows two concentric progress rings — the thick outer one is the print
+percentage, the thin inner one is layer progress (`layer / totalLayers`), with a small
+`print % / layers` legend under them and the percentage plus time remaining in the middle.
+Beside the rings a **vertical layer gauge** runs from a printer glyph at the bottom (first
+layer) to a marker at the top (last layer); the knob rides up as the print grows and carries
+the layer percentage, and the caption underneath gives the exact `layer / total layers`. Both
+degrade to zero and *no layer data* when the printer is idle or has not sent a layer count.
+The card also shows G-code state and stage name, job name, nozzle/bed/chamber temperatures
+with their target markers, the four fan speeds, and
+chips for the door (the chip reads *Door: not reported* and stays muted until the printer has
+reported a door change — on the X1C the switch sits at the door edge, so a door that does not
+press it never reports; the top lid has no sensor), chamber light, work light, SD card, print
+type, speed level, printer WiFi
 and AMS tray with its humidity level — shown on Bambu's A (driest) to E (wettest) scale; the printer
 actually sends an index 1–5 where 5 is dry, which is what the API returns.
 
@@ -181,7 +191,7 @@ Animation for the finish colour. Solid is calm; Breathe draws the eye without be
 
 `finishExitMode` — `door` | `timer`
 
-How the finish colour ends. Door waits until you open or close the printer door or top lid (the printer reports one enclosure-open state for both) — it stays lit until you actually come and collect the print. Timer clears it after a fixed number of minutes. P1 printers have no door sensor, so use Timer there.
+How the finish colour ends. Door waits until you open or close the printer door — it stays lit until you actually come and collect the print. Timer clears it after a fixed number of minutes. P1 printers have no door sensor, so use Timer there. If the printer never reports a door change (switch not actuated), the finish indication ends by timer automatically.
 
 ### After (minutes)
 
@@ -211,7 +221,7 @@ Lets BLLED drive the printer's own chamber light over MQTT: on when a print star
 
 `doorToggleEnabled` — default on
 
-Closing the door (or lid — the printer reports one sensor state for both) twice within two seconds toggles the LEDs on or off — a physical light switch that needs no phone. Useful during a timelapse or when a bright chamber annoys you at night. P1 printers have no door sensor, so this never triggers there.
+Closing the door twice within two seconds toggles the LEDs on or off — a physical light switch that needs no phone. Useful during a timelapse or when a bright chamber annoys you at night. P1 printers have no door sensor, so this never triggers there. If the printer never reports a door change (switch not actuated), the finish indication ends by timer automatically.
 
 ### Go dark when the printer is offline for
 

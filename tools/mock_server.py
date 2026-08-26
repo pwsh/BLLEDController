@@ -317,7 +317,7 @@ class Sim(object):
             "fanChamber": 40 if printing else 0,
             "fanHeatbreak": 100 if gs == "RUNNING" else 0,
             "chamberLight": self.chamber_light, "workLight": self.work_light,
-            "doorOpen": self.door_open, "sdcard": True, "speedLevel": 2,
+            "doorOpen": self.door_open, "doorKnown": True, "sdcard": True, "speedLevel": 2,
             "jobName": self.job if idx >= 1 else "",
             "printType": "local" if idx >= 1 else "",
             "printError": 0, "wifiSignal": -30,

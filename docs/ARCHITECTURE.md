@@ -264,14 +264,18 @@ Topics (base = `mqttExtBaseTopic`):
 * `<base>/availability` retained `online` / LWT `offline`
 * `<base>/status` retained, the `/api/status` object, every `mqttExtIntervalSec` **and** within 1 s of a change
 * `<base>/led` retained, the `led` object, on change
+* `<base>/light` retained, HA JSON-light state shape `{"state":"ON|OFF","brightness":0-255,"color_mode":"rgb","color":{"r":..,"g":..,"b":..},"effect":"solid"}`
+  (ON = override active; brightness scaled from 0–100; colour = override colour, or current output when OFF)
+* `<base>/light/set` subscribed, HA JSON-light command shape (`state`, optional `brightness`, `color`, `effect`) → override on / clear on OFF.
+  HA's JSON light schema cannot use templates on a nested payload — see `docs/HA-DISCOVERY.md` (binding for the HA work).
 * `<base>/set` subscribed; JSON with any of: `{"hex"|"r,g,b,ww,cw","effect","durationSec"}` (override),
   `{"clear":true}`, `{"mode":"auto|..."}`, `{"brightness":n}`, `{"chamberLight":true}`, `{"identify":true}`
 * `<base>/cmd` subscribed, plain payloads `ON`/`OFF` (override white / clear) for simple automations
 
 HA discovery (retained, published on connect and when `host` changes; removed with empty payload when
 disabled). Device block: identifiers `["blled_<mac>"]`, name `<host>`, manufacturer `DutchDeveloper`,
-model `BLLED`, sw_version fw, configuration_url `http://<ip>/`. Entities (object_id `blled_<mac>_<key>`):
-* `light` (JSON schema, brightness + rgb + effect list) → override on/off via `<base>/set`; state from `<base>/led` (`override` → ON)
+model `BLLED`, sw_version fw, configuration_url `http://<ip>/`. Entities (object_id `blled_<mac>_<key>`), classic per-entity discovery with `~` shorthand and abbreviated keys (each payload < 500 B; only the light carries the full `dev` block, the others `{"ids":..}` only):
+* `light` (`schema: json`, brightness, `sup_clrm:["rgb"]`, `effect` + `fx_list`) with `stat_t: ~/light`, `cmd_t: ~/light/set`, `name: null` (main entity)
 * `select` LED mode; `number` brightness (0–100)
 * `sensor`: stage name, gcode state, progress (%), remaining (min), layer, total layers, nozzle/bed/chamber temp (°C, device_class temperature), LED reason, HMS highest, wifi rssi (device RSSI)
 * `binary_sensor`: printer connected (connectivity), door open (door), chamber light (light), finish active

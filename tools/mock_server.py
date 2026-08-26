@@ -46,7 +46,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src", "ww
 
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
-COLOR_NAMES = ["running", "maintenance", "test", "wifi", "finish",
+COLOR_NAMES = ["running", "maintenance", "test", "wifi", "preheat", "finish",
                "stage14", "stage1", "stage8", "stage9", "stage10",
                "pause", "firstLayer", "nozzleClog", "hmsSerious", "hmsFatal",
                "hmsCommon", "filamentRunout", "frontCover", "nozzleTemp", "bedTemp"]
@@ -102,7 +102,7 @@ def defaults():
     }
     col = {
         "running": ("#000000", 255, 255), "maintenance": ("#000000", 255, 255),
-        "test": ("#3f3cfb", 0, 0), "wifi": ("#ffa500", 0, 0), "finish": ("#00ff00", 0, 0),
+        "test": ("#3f3cfb", 0, 0), "wifi": ("#ffa500", 0, 0), "preheat": ("#ff6a00", 0, 0), "finish": ("#00ff00", 0, 0),
         "stage14": ("#000000", 0, 0), "stage1": ("#000000", 0, 0), "stage8": ("#000000", 0, 0),
         "stage9": ("#000000", 0, 0), "stage10": ("#000000", 0, 0),
         "pause": ("#0000ff", 0, 0), "firstLayer": ("#0000ff", 0, 0), "nozzleClog": ("#0000ff", 0, 0),

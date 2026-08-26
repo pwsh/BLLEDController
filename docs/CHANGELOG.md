@@ -103,6 +103,9 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
 * Wording: "HMS" is now "printer alert" in the UI, manual and README (with HMS — Bambu's Health
   Management System — named where codes are involved); the dashboard shows AMS humidity as Bambu's
   A–E level with a tooltip instead of the raw 1–5 index.
+* The preheat visual (`preheatVisual=tempglow`, "Heat-up blend") is now a real colour change: it
+  blends from a new `preheatColor` (default orange `#FF6A00`) into the running colour as the
+  slowest heater approaches its target. The first version only dimmed the white, which was invisible.
 * Any RUNNING stage the ladder does not specifically handle now counts as printing (a real X1C
   reports stage 54 while heating a 120 °C bed, which used to fall through to "No rule"), and the
   preheat visual keys on "a heater is still below its target" rather than on stage 2/7 only.

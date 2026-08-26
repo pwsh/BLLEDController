@@ -155,7 +155,7 @@ struct LedRuntime
     uint8_t output[5] = {0, 0, 0, 0, 0};   // r,g,b,ww,cw
     COLOR targetColor;                      // decision colour before brightness/effect
     LedEffect effect = LedEffect::Solid;
-    char reason[48] = "Boot";
+    char reason[64] = "Boot";
     float progress = 0;                     // 0..1 for ProgressBlend
 
     // override (API/MQTT)

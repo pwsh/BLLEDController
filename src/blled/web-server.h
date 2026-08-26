@@ -60,7 +60,7 @@ static uint8_t wsLastOutput[5] = {0, 0, 0, 0, 0};
 // Every asset is baked into the firmware, so one ETag per build is exact: the
 // browser revalidates on each load (cheap 304) and can never keep a script from
 // an older firmware after an OTA update. (max-age caching did exactly that.)
-static const char *STATIC_ETAG = "\"" STRVERSION "-" __DATE__ "-" __TIME__ "\"";
+static char STATIC_ETAG[48] = "\"3\""; // filled in by setupWebserver()
 
 static void sendGz(AsyncWebServerRequest *request, const uint8_t *data, size_t len, const char *mime,
                    const char *cacheControl = "no-cache")
@@ -288,6 +288,12 @@ void setupWebserver()
         MDNS.addService("http", "tcp", 80);
 
     LogSerial.println(F("[Web] Setting up the web server"));
+
+    // One ETag per firmware build (no spaces: __DATE__ is "Aug 26 2026").
+    snprintf(STATIC_ETAG, sizeof(STATIC_ETAG), "\"%s-%s-%s\"", STRVERSION, __DATE__, __TIME__);
+    for (char *c = STATIC_ETAG; *c; c++)
+        if (*c == ' ' || *c == ':')
+            *c = '_';
 
     DefaultHeaders::Instance().addHeader("X-Content-Type-Options", "nosniff");
 

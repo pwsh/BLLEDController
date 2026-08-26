@@ -56,7 +56,7 @@ struct LedDecision
     COLOR color;
     LedEffect effect = LedEffect::Solid;
     float progress = 0.0f;
-    char reason[48] = "";
+    char reason[64] = "";
 };
 
 static float ledTargetVal[5] = {0, 0, 0, 0, 0};  // decision colour, pre effect/brightness
@@ -537,11 +537,22 @@ static COLOR ledPreheatColor(const PrinterState &st)
     if (printerConfig.preheatVisual != PreheatVisual::TempGlow)
         return printerConfig.runningColor;
 
-    float ratio = 0.0f;
+    // Follow the LEAST ready heater: the strip only reaches full brightness
+    // once everything is at temperature (a nearly-hot bed must not mask a cold nozzle).
+    float ratio = 1.0f;
+    bool any = false;
     if (!isnan(st.nozzleTemp) && !isnan(st.nozzleTarget) && st.nozzleTarget > 1.0f)
-        ratio = max(ratio, st.nozzleTemp / st.nozzleTarget);
+    {
+        ratio = min(ratio, st.nozzleTemp / st.nozzleTarget);
+        any = true;
+    }
     if (!isnan(st.bedTemp) && !isnan(st.bedTarget) && st.bedTarget > 1.0f)
-        ratio = max(ratio, st.bedTemp / st.bedTarget);
+    {
+        ratio = min(ratio, st.bedTemp / st.bedTarget);
+        any = true;
+    }
+    if (!any)
+        ratio = 0.0f;
     ratio = constrain(ratio, 0.0f, 1.0f);
 
     COLOR c = ledScale(printerConfig.runningColor, 0.15f + 0.85f * ratio);
@@ -554,7 +565,7 @@ static COLOR ledPreheatColor(const PrinterState &st)
 static void ledDecide(const PrinterState &st, LedDecision &d)
 {
     unsigned long now = millis();
-    char buf[48];
+    char buf[64];
 
     // 1 - LED mode off
     if (printerConfig.ledMode == LedMode::Off)

@@ -1,4 +1,8 @@
-# Home Assistant MQTT Discovery — Implementation Reference for ESP32 (`blled`)
+---
+title: Home Assistant discovery notes
+parent: Reference
+nav_order: 4
+---
 
 **Sources:** [MQTT integration / Discovery](https://www.home-assistant.io/integrations/mqtt/) · [Light (MQTT)](https://www.home-assistant.io/integrations/light.mqtt/) · [Select (MQTT)](https://www.home-assistant.io/integrations/select.mqtt/) · [Number (MQTT)](https://www.home-assistant.io/integrations/number.mqtt/) · [Sensor (MQTT)](https://www.home-assistant.io/integrations/sensor.mqtt/) · [Binary sensor (MQTT)](https://www.home-assistant.io/integrations/binary_sensor.mqtt/) · [Button (MQTT)](https://www.home-assistant.io/integrations/button.mqtt/)
 

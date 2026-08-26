@@ -1,4 +1,8 @@
-# BLLED v3 web UI — developer notes
+---
+title: UI developer notes
+parent: Reference
+nav_order: 6
+---
 
 The whole interface is three files in `src/www/`, plus a standalone captive-portal page.
 No framework, no build step, no CDN: `pre_build.py` gzips every asset in `src/www/` into

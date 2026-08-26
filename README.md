@@ -313,7 +313,7 @@ python3 tools/mock_server.py          # http://localhost:8080 serves src/www wit
 Testing the API against a real controller:
 
 ```
-tools/test_api.sh 10.0.42.33          # optional: BLLED_USER/BLLED_PASS for HTTP auth
+tools/test_api.sh 192.168.1.50          # optional: BLLED_USER/BLLED_PASS for HTTP auth
 ```
 
 Provisioning over USB (handy on a bench): send one JSON line at 115200 baud —

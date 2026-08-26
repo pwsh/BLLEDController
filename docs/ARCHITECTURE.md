@@ -1,4 +1,8 @@
-# BLLED v3 Architecture & API Contract
+---
+title: Architecture
+parent: Reference
+nav_order: 5
+---
 
 This is the binding design for the v3 rework. Three workstreams build against it in parallel:
 **core firmware** (LED engine, state, parsing, persistence), **API + external MQTT**, and **web UI**.
@@ -122,8 +126,10 @@ the inactivity timer, as upstream.
 
 * `printingVisual`: `solid` | `progress` (blend `runningColor → finishColor` by `mc_percent`, so a
   print visibly "ripens" toward the finish colour) | `breathe`.
-* `preheatVisual`: `solid` | `tempglow` (colour = `runningColor` scaled by 0.15 + 0.85·ratio where
-  ratio = max(nozzle/nozzleTarget, bed/bedTarget) clamped 0..1; below 30 % ratio add a red tint).
+* `preheatVisual`: `solid` | `tempglow` ("Heat-up blend"): ratio = **min** over active heaters of
+  temp/target (the slowest heater); below 85 % show `preheatColor` alone (white channels off) scaled
+  0.4→1.0 by ratio/0.85; over the last 15 % blend `preheatColor → runningColor`. Rationale: on an
+  RGB+white strip the white channels swamp any RGB tint, so a linear blend reads as white almost at once.
 * `errorEffect`, `pauseEffect`, `finishEffect`: `solid|breathe|blink|fastblink` (defaults solid).
 * `effectSpeed` 1–10 (default 5), `fadeMs` 0–5000 (default 500).
 
@@ -187,9 +193,9 @@ Legacy aliases kept: `GET /getConfig` → `/api/config`, `GET /configfile.json` 
 
 ```json
 {
-  "device": {"fw":"3.0.0","host":"BLLED","ip":"10.0.42.33","mac":"AA:BB:..","rssi":-61,"uptimeSec":1234,
+  "device": {"fw":"3.0.0","host":"BLLED","ip":"192.168.1.50","mac":"AA:BB:..","rssi":-61,"uptimeSec":1234,
              "heapFree":123456,"heapMin":100000,"apMode":false,"mdns":"BLLED.local","chip":"ESP32","sdk":"..."},
-  "printer": {"connected":true,"ip":"10.0.42.159","serial":"00M09D5...","model":"X1C","fw":"01.08.02.00",
+  "printer": {"connected":true,"ip":"192.168.1.60","serial":"00M09A1...","model":"X1C","fw":"01.08.02.00",
               "lastReportSec":1,
               "gcodeState":"RUNNING","stage":0,"stageName":"Printing","overrideStage":999,
               "progress":42,"remainingMin":123,"layer":10,"totalLayers":200,

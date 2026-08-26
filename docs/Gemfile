@@ -1,0 +1,6 @@
+source "https://rubygems.org"
+
+# Mirrors what GitHub Pages runs, so a local preview matches the published site.
+gem "github-pages", group: :jekyll_plugins
+
+gem "webrick", "~> 1.8"   # Ruby 3.x no longer ships webrick with the stdlib

@@ -1,17 +1,21 @@
-# BLLED v3 — HTTP / WebSocket / MQTT API reference
+---
+title: API reference
+parent: Reference
+nav_order: 3
+---
 
 Firmware 3.0.0 ("Balder"). This document is the human-readable form of
 `docs/ARCHITECTURE.md` §7 and §8; the architecture document wins if the two ever disagree.
 
-All examples assume the controller is at `10.0.42.33`. Substitute your own IP, the mDNS name
+All examples assume the controller is at `192.168.1.50`. Substitute your own IP, the mDNS name
 (`http://BLLED.local/`), or a mock server (`python3 tools/mock_server.py --port 8080`).
 
 A ready-made smoke test lives in `tools/test_api.sh`:
 
 ```bash
-./tools/test_api.sh 10.0.42.33                 # read-only checks
-./tools/test_api.sh 10.0.42.33 admin secret    # with HTTP Basic auth
-BLLED_WRITE=1 ./tools/test_api.sh 10.0.42.33   # plus the mutating calls
+./tools/test_api.sh 192.168.1.50                 # read-only checks
+./tools/test_api.sh 192.168.1.50 admin secret    # with HTTP Basic auth
+BLLED_WRITE=1 ./tools/test_api.sh 192.168.1.50   # plus the mutating calls
 ```
 
 ---
@@ -34,7 +38,7 @@ upload and config download included — when **both** `webUser` and `webPass` ar
 device is not in setup-AP mode. In AP mode everything is open so the captive portal can work.
 
 ```bash
-curl -u admin:secret http://10.0.42.33/api/status
+curl -u admin:secret http://192.168.1.50/api/status
 ```
 
 Unauthenticated requests get `401` with `WWW-Authenticate: Basic realm="Login Required"`.
@@ -65,18 +69,18 @@ The single status model. Identical over REST, over the WebSocket, and on the ext
 `<base>/status` topic.
 
 ```bash
-curl -s http://10.0.42.33/api/status | jq
+curl -s http://192.168.1.50/api/status | jq
 ```
 
 ```json
 {
   "device": {
-    "fw": "3.0.0", "host": "BLLED", "ip": "10.0.42.33", "mac": "A0:B1:C2:D3:E4:F5",
+    "fw": "3.0.0", "host": "BLLED", "ip": "192.168.1.50", "mac": "A0:B1:C2:D3:E4:F5",
     "rssi": -61, "uptimeSec": 1234, "heapFree": 123456, "heapMin": 100000,
     "apMode": false, "mdns": "BLLED.local", "chip": "ESP32-D0WD-V3", "sdk": "v5.5.1-..."
   },
   "printer": {
-    "connected": true, "ip": "10.0.42.159", "serial": "00M09D5...", "model": "X1C",
+    "connected": true, "ip": "192.168.1.60", "serial": "00M09A1...", "model": "X1C",
     "fw": "01.08.02.00", "lastReportSec": 1,
     "gcodeState": "RUNNING", "stage": 0, "stageName": "Printing", "overrideStage": 999,
     "progress": 42, "remainingMin": 123, "layer": 10, "totalLayers": 200,
@@ -147,14 +151,14 @@ when set — never in the clear (`docs/REVIEW.md` #29). `accessCode` **is** retu
 needs it to show what the printer is paired with.
 
 ```bash
-curl -s http://10.0.42.33/api/config | jq
+curl -s http://192.168.1.50/api/config | jq
 ```
 
 ```json
 {
   "wifiSSID": "workshop", "wifiPass": "********", "host": "BLLED",
   "webUser": "admin", "webPass": "********", "BSSID": "b8:27:eb:99:41:07",
-  "printerIP": "10.0.42.159", "accessCode": "12345678", "serialNumber": "00M09D5...",
+  "printerIP": "192.168.1.60", "accessCode": "12345678", "serialNumber": "00M09A1...",
   "printerAutoIp": true, "isP1Printer": false,
   "brightness": 80, "ledMode": "auto", "fadeMs": 500, "effectSpeed": 5,
   "followChamberLight": true, "printingVisual": "solid", "preheatVisual": "solid",
@@ -179,18 +183,18 @@ Secret semantics: **absent or `"********"` = unchanged, `""` = clear.**
 ```bash
 # one setting
 curl -X PUT -u admin:secret -H 'Content-Type: application/json' \
-     -d '{"brightness":60}' http://10.0.42.33/api/config
+     -d '{"brightness":60}' http://192.168.1.50/api/config
 
 # a whole tab's worth
 curl -X PUT -H 'Content-Type: application/json' -d '{
   "ledMode": "auto", "fadeMs": 800, "effectSpeed": 7,
   "printingVisual": "progress", "runningRGB": "#ffffff",
   "runningWW": 200, "runningCW": 200
-}' http://10.0.42.33/api/config
+}' http://192.168.1.50/api/config
 
 # change the WiFi password (network key -> restart required)
 curl -X PUT -H 'Content-Type: application/json' \
-     -d '{"wifiSSID":"workshop","wifiPass":"hunter2"}' http://10.0.42.33/api/config
+     -d '{"wifiSSID":"workshop","wifiPass":"hunter2"}' http://192.168.1.50/api/config
 ```
 
 The response is the full config exactly as `GET /api/config` returns it, plus
@@ -209,7 +213,7 @@ configured SSID); it is never persisted.
 Errors:
 
 ```bash
-$ curl -sX PUT -H 'Content-Type: application/json' -d '{"nope":1}' http://10.0.42.33/api/config
+$ curl -sX PUT -H 'Content-Type: application/json' -d '{"nope":1}' http://192.168.1.50/api/config
 {"error":"unknown or invalid keys: nope"}
 ```
 
@@ -219,7 +223,7 @@ Downloads `blledconfig.json` with **every** setting **including the plaintext Wi
 access code and web login**. It is a backup — treat the file like a password.
 
 ```bash
-curl -u admin:secret -OJ http://10.0.42.33/api/config/backup
+curl -u admin:secret -OJ http://192.168.1.50/api/config/backup
 ```
 
 ### `POST /api/config/restore`
@@ -230,7 +234,7 @@ understands, and only then replaces `/blledconfig.json`. Authentication is check
 first byte is written** (`docs/REVIEW.md` #28). Files over 32 kB are rejected.
 
 ```bash
-curl -u admin:secret -F "file=@blledconfig.json" http://10.0.42.33/api/config/restore
+curl -u admin:secret -F "file=@blledconfig.json" http://192.168.1.50/api/config/restore
 # {"ok":true,"restartRequired":true}    -- the device reboots ~1.5 s later
 ```
 
@@ -242,7 +246,7 @@ Deletes the config file and reboots into factory defaults (setup AP).
 
 ```bash
 curl -u admin:secret -X POST -H 'Content-Type: application/json' -d '{}' \
-     http://10.0.42.33/api/config/reset
+     http://192.168.1.50/api/config/reset
 # {"ok":true}
 ```
 
@@ -266,12 +270,12 @@ The override sits at priority 2 of the LED ladder: it beats everything except `l
 ```bash
 # orange for 30 s
 curl -X POST -H 'Content-Type: application/json' \
-     -d '{"hex":"#ff8800","durationSec":30}' http://10.0.42.33/api/led
+     -d '{"hex":"#ff8800","durationSec":30}' http://192.168.1.50/api/led
 
 # warm white at 40 %, blinking, until cleared
 curl -X POST -H 'Content-Type: application/json' \
      -d '{"r":0,"g":0,"b":0,"ww":255,"cw":80,"effect":"blink","brightness":40}' \
-     http://10.0.42.33/api/led
+     http://192.168.1.50/api/led
 ```
 
 Returns the `led` object from `/api/status`. Bad input → 400
@@ -281,14 +285,14 @@ Returns the `led` object from `/api/status`. Bad input → 400
 ### `DELETE /api/led` — clear the override
 
 ```bash
-curl -X DELETE http://10.0.42.33/api/led
+curl -X DELETE http://192.168.1.50/api/led
 ```
 
 ### `POST /api/led/mode` — persist the LED mode
 
 ```bash
 curl -X POST -H 'Content-Type: application/json' -d '{"mode":"maintenance"}' \
-     http://10.0.42.33/api/led/mode
+     http://192.168.1.50/api/led/mode
 ```
 
 `auto` | `maintenance` | `test` | `rainbow` | `wifi` | `off`. Returns the `led` object.
@@ -297,7 +301,7 @@ curl -X POST -H 'Content-Type: application/json' -d '{"mode":"maintenance"}' \
 
 ```bash
 curl -X POST -H 'Content-Type: application/json' -d '{"brightness":80}' \
-     http://10.0.42.33/api/led/brightness
+     http://192.168.1.50/api/led/brightness
 ```
 
 0–100. **0 forces every channel to 0.** Returns the `led` object.
@@ -305,7 +309,7 @@ curl -X POST -H 'Content-Type: application/json' -d '{"brightness":80}' \
 ### `POST /api/led/identify` — three white blinks
 
 ```bash
-curl -X POST -H 'Content-Type: application/json' -d '{}' http://10.0.42.33/api/led/identify
+curl -X POST -H 'Content-Type: application/json' -d '{}' http://192.168.1.50/api/led/identify
 # {"ok":true}
 ```
 
@@ -316,13 +320,13 @@ curl -X POST -H 'Content-Type: application/json' -d '{}' http://10.0.42.33/api/l
 ### `POST /api/action`
 
 ```bash
-curl -X POST -H 'Content-Type: application/json' -d '{"action":"restart"}'                 http://10.0.42.33/api/action
-curl -X POST -H 'Content-Type: application/json' -d '{"action":"chamberLight","on":true}'  http://10.0.42.33/api/action
-curl -X POST -H 'Content-Type: application/json' -d '{"action":"workLight","on":false}'    http://10.0.42.33/api/action
-curl -X POST -H 'Content-Type: application/json' -d '{"action":"pushall","force":true}'    http://10.0.42.33/api/action
-curl -X POST -H 'Content-Type: application/json' -d '{"action":"rescanWifi"}'              http://10.0.42.33/api/action
-curl -X POST -H 'Content-Type: application/json' -d '{"action":"discover"}'                http://10.0.42.33/api/action
-curl -X POST -H 'Content-Type: application/json' -d '{"action":"reconnectMqtt"}'           http://10.0.42.33/api/action
+curl -X POST -H 'Content-Type: application/json' -d '{"action":"restart"}'                 http://192.168.1.50/api/action
+curl -X POST -H 'Content-Type: application/json' -d '{"action":"chamberLight","on":true}'  http://192.168.1.50/api/action
+curl -X POST -H 'Content-Type: application/json' -d '{"action":"workLight","on":false}'    http://192.168.1.50/api/action
+curl -X POST -H 'Content-Type: application/json' -d '{"action":"pushall","force":true}'    http://192.168.1.50/api/action
+curl -X POST -H 'Content-Type: application/json' -d '{"action":"rescanWifi"}'              http://192.168.1.50/api/action
+curl -X POST -H 'Content-Type: application/json' -d '{"action":"discover"}'                http://192.168.1.50/api/action
+curl -X POST -H 'Content-Type: application/json' -d '{"action":"reconnectMqtt"}'           http://192.168.1.50/api/action
 ```
 
 | action | effect | extra fields |
@@ -345,8 +349,8 @@ Printer commands are queued and sent by the MQTT task, so a `200` means "accepte
 The SSDP discovery cache.
 
 ```bash
-curl -s http://10.0.42.33/api/printers
-# [{"ip":"10.0.42.159","usn":"00M09D5...","model":"X1C"}]
+curl -s http://192.168.1.50/api/printers
+# [{"ip":"192.168.1.60","usn":"00M09A1...","model":"X1C"}]
 ```
 
 Discovery is a background state machine; kick a fresh round with
@@ -358,9 +362,9 @@ Asynchronous. The first call starts a scan and returns `{"scanning":true}`; poll
 arrives (sorted strongest first, up to 32 entries).
 
 ```bash
-curl -s http://10.0.42.33/api/wifi/scan
+curl -s http://192.168.1.50/api/wifi/scan
 # {"scanning":true}
-curl -s http://10.0.42.33/api/wifi/scan
+curl -s http://192.168.1.50/api/wifi/scan
 # {"networks":[{"ssid":"workshop","bssid":"b8:27:eb:99:41:07","rssi":-48,"channel":6,"secure":true}]}
 ```
 
@@ -369,7 +373,7 @@ curl -s http://10.0.42.33/api/wifi/scan
 Static build and hardware facts.
 
 ```bash
-curl -s http://10.0.42.33/api/info | jq
+curl -s http://192.168.1.50/api/info | jq
 ```
 
 ```json
@@ -391,7 +395,7 @@ endpoint was wide open (`docs/REVIEW.md` #27).
 
 ```bash
 curl -u admin:secret -F "firmware=@.pio/build/esp32dev/firmware.bin" \
-     http://10.0.42.33/api/update
+     http://192.168.1.50/api/update
 # {"ok":true}      -- the device reboots ~1.5 s later
 ```
 
@@ -403,7 +407,7 @@ A rejected or corrupt image returns **400** with the `Update` library's reason, 
 ## 6. WebSocket `/ws`
 
 ```
-ws://10.0.42.33/ws
+ws://192.168.1.50/ws
 ```
 
 Same HTTP Basic auth as everything else (checked at the handshake; the browser reuses the
@@ -426,7 +430,7 @@ Same semantics as `POST /api/led` / `DELETE /api/led`. There is no per-command r
 status push reflects the change.
 
 ```bash
-websocat ws://10.0.42.33/ws
+websocat ws://192.168.1.50/ws
 # {"device":{...},"printer":{...},...}
 ```
 
@@ -441,12 +445,12 @@ Off by default. Enable it in **Connection → External MQTT** or over the API:
 ```bash
 curl -X PUT -H 'Content-Type: application/json' -d '{
   "mqttExtEnabled": true,
-  "mqttExtHost": "10.0.42.10", "mqttExtPort": 1883,
+  "mqttExtHost": "192.168.1.10", "mqttExtPort": 1883,
   "mqttExtUser": "blled", "mqttExtPass": "secret",
   "mqttExtBaseTopic": "blled/workshop",
   "mqttExtIntervalSec": 10,
   "haDiscovery": true, "haPrefix": "homeassistant"
-}' http://10.0.42.33/api/config
+}' http://192.168.1.50/api/config
 ```
 
 Plain TCP only (no TLS). Client id `BLLED-<last-3-MAC-bytes>`. Reconnect back-off 5 s → 60 s.
@@ -468,7 +472,7 @@ the broker settings takes effect immediately — no restart needed.
 512 bytes.
 
 ```bash
-mosquitto_sub -h 10.0.42.10 -v -t 'blled/workshop/#'
+mosquitto_sub -h 192.168.1.10 -v -t 'blled/workshop/#'
 ```
 
 ```json
@@ -500,8 +504,8 @@ Any combination of:
 * `mode` persists `ledMode`.
 
 ```bash
-mosquitto_pub -h 10.0.42.10 -t blled/workshop/set -m '{"hex":"#00ff00","durationSec":60}'
-mosquitto_pub -h 10.0.42.10 -t blled/workshop/set -m '{"clear":true}'
+mosquitto_pub -h 192.168.1.10 -t blled/workshop/set -m '{"hex":"#00ff00","durationSec":60}'
+mosquitto_pub -h 192.168.1.10 -t blled/workshop/set -m '{"clear":true}'
 ```
 
 #### `<base>/cmd` — plain text, for simple automations and the HA buttons
@@ -515,7 +519,7 @@ mosquitto_pub -h 10.0.42.10 -t blled/workshop/set -m '{"clear":true}'
 | `RESTART` | reboot the controller |
 
 ```bash
-mosquitto_pub -h 10.0.42.10 -t blled/workshop/cmd -m ON
+mosquitto_pub -h 192.168.1.10 -t blled/workshop/cmd -m ON
 ```
 
 #### `<base>/light/set` — Home Assistant's JSON-light command shape
@@ -548,7 +552,7 @@ Device block:
 
 ```json
 {"ids":["blled_a1b2c3"],"name":"<host>","mf":"DutchDeveloper","mdl":"BLLED",
- "sw":"3.0.0","cu":"http://10.0.42.33/"}
+ "sw":"3.0.0","cu":"http://192.168.1.50/"}
 ```
 
 ### Entities (22)
@@ -585,7 +589,7 @@ leaves the entity `unknown` instead of throwing a silent Jinja error
 Inspect what was published:
 
 ```bash
-mosquitto_sub -h 10.0.42.10 -v -t 'homeassistant/+/blled_+/config'
+mosquitto_sub -h 192.168.1.10 -v -t 'homeassistant/+/blled_+/config'
 ```
 
 ### Example automation

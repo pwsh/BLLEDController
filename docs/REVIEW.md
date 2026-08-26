@@ -1,4 +1,8 @@
-# BLLEDController v2.3.0 — Code Review Findings
+---
+title: v2 code review
+parent: Reference
+nav_order: 7
+---
 
 Review of upstream `5137779` (v2.3.0) by reading every source file, cross-checked against a live X1C
 (15.8 KB full `push_status` every ~1 s) and the community issue tracker. Severity: **C**ritical /

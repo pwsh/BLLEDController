@@ -1,4 +1,8 @@
-# Changelog
+---
+title: Changelog
+parent: Reference
+nav_order: 8
+---
 
 ## 3.0.0 (unreleased) — "Balder"
 

@@ -1,4 +1,8 @@
-# BLLED user manual
+---
+title: Settings reference
+parent: Reference
+nav_order: 1
+---
 
 BLLED drives a five-channel (R, G, B, warm white, cold white) LED strip inside a Bambu Lab
 printer and colours it according to what the printer is doing. This manual covers the v3
@@ -12,7 +16,7 @@ below — hover it, tap it, or focus it with the keyboard.
 
 ## First-time setup
 
-A controller with no WiFi credentials starts its own access point called **BLLED-Setup**.
+A controller with no WiFi credentials starts its own access point called **`BLLED_AP`**.
 Join it with a phone or laptop; the captive portal opens the setup page (also at
 `http://192.168.4.1/wifi`). You need four things:
 
@@ -535,7 +539,7 @@ reconnects on its own.
 card says disconnected but the printer is plainly reachable.
 
 **Factory reset** deletes the configuration file, including the WiFi credentials, the access
-code and the web login, and reboots into the **BLLED-Setup** access point. Take a backup
+code and the web login, and reboots into the **`BLLED_AP`** access point. Take a backup
 first if you want to come back.
 
 **Web serial log** opens the live log console at `/webserial`. Turn on *Log state changes*

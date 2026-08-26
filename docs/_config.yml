@@ -1,0 +1,57 @@
+title: BLLED
+description: >-
+  LED lighting for Bambu Lab printers. BLLED v3 colours a 12 V RGB + warm/cold-white
+  strip according to what your printer is doing, with a web interface, a REST/WebSocket
+  API and Home Assistant support.
+
+url: "https://pwsh.github.io"
+baseurl: "/BLLEDController"
+
+remote_theme: just-the-docs/just-the-docs
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-relative-links
+
+# Pretty permalinks so extension-less relative links ([text](getting-started)) resolve.
+permalink: pretty
+
+# --- just-the-docs -----------------------------------------------------------
+color_scheme: dark
+search_enabled: true
+search:
+  heading_level: 3
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+heading_anchors: true
+
+back_to_top: true
+back_to_top_text: "Back to top"
+
+aux_links:
+  "BLLED on GitHub":
+    - "https://github.com/pwsh/BLLEDController"
+aux_links_new_tab: true
+
+footer_content: >-
+  BLLED v3 &middot; CC BY-NC-SA 4.0 &middot; original hardware and firmware by
+  <a href="https://dutchdevelop.com/">DutchDeveloper</a>
+
+# --- build -------------------------------------------------------------------
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - .bundle/
+  - screenshots-raw/
+  - screenshots/README.md
+
+kramdown:
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false

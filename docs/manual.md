@@ -147,7 +147,7 @@ How the running colour behaves during an actual print. Solid never changes; Prog
 
 `preheatVisual` — `solid` | `tempglow` ("Heat-up blend")
 
-How the strip looks while the bed or hotend is coming up to temperature. Solid shows the plain running colour. Heat-up blend starts from the cold colour below (default orange) and blends into the running colour as the slowest heater approaches its target, so the strip visibly warms up with the printer and only turns white once nozzle and bed are both at temperature.
+How the strip looks while the bed or hotend is coming up to temperature. Solid shows the plain running colour. Heat-up blend shows the cold colour below (default orange) on its own, getting brighter as the slowest heater warms up, and only fades into the running colour over the last stretch before target — so the strip is unmistakably orange while heating and white once nozzle and bed are ready.
 
 ### Cold (heat-up) colour
 

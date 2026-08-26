@@ -556,11 +556,19 @@ static COLOR ledPreheatColor(const PrinterState &st)
         ratio = 0.0f;
     ratio = constrain(ratio, 0.0f, 1.0f);
 
-    // Heaters idle at room temperature already read ~10-25 % of a print target;
-    // stretch the useful part of the range so the blend starts from the cold colour.
-    float f = (ratio - 0.2f) / 0.75f;
-    f = constrain(f, 0.0f, 1.0f);
-    return ledBlend(printerConfig.preheatColor, printerConfig.runningColor, f);
+    // Perception first: on an RGB+white strip the white channels swamp any RGB
+    // tint, so a linear blend looks white almost immediately. Show the cold
+    // colour ON ITS OWN (white channels off) with its brightness ramping from
+    // 40 % to 100 % over the heat-up, and only fade into the running colour
+    // over the final stretch (last ~15 % of the target temperature).
+    const float BLEND_START = 0.85f;
+    if (ratio < BLEND_START)
+    {
+        float ramp = 0.4f + 0.6f * (ratio / BLEND_START);
+        return ledScale(printerConfig.preheatColor, ramp);
+    }
+    float f = (ratio - BLEND_START) / (1.0f - BLEND_START);
+    return ledBlend(printerConfig.preheatColor, printerConfig.runningColor, constrain(f, 0.0f, 1.0f));
 }
 
 static void ledDecide(const PrinterState &st, LedDecision &d)

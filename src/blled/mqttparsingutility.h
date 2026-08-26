@@ -1,59 +1,49 @@
 #ifndef _MQTTPARSERUTILITY
 #define _MQTTPARSERUTILITY
 
+// ---------------------------------------------------------------------------
+// mqttparsingutility.h -- small helpers around PubSubClient state codes.
+//
+// The HMS severity/module/name helpers moved to stages.h (hmsSeverityName(),
+// hmsModuleName(), hmsFormatCode()) so the API and HA layers can reuse them.
+//
+// Threading: mqttStateText() is pure; ParseMQTTState() logs and must therefore
+// only be called for infrequent events (connect/disconnect), never per message.
+// ---------------------------------------------------------------------------
+
+#include <Arduino.h>
 #include "types.h"
+#include "logSerial.h"
 
-String ParseHMSSeverity(int code){ // Provided by WolfWithSword
-    int parsedcode (code>>16);
-    switch (parsedcode){
-        case 1:
-            return F("Fatal");
-        case 2:
-            return F("Serious");
-        case 3:
-            return F("Common");
-        case 4:
-            return F("Info");
-        default:;
-    }
-    return "";
-}
-
-void ParseMQTTState(int code){
+// PubSubClient::state() -> human readable text (also used by /api/status).
+const char *mqttStateText(int code)
+{
     switch (code)
     {
-    case -4: // MQTT_CONNECTION_TIMEOUT
-        LogSerial.println(F("[MQTT] Timeout (-4)"));
-        break;
-    case -3: // MQTT_CONNECTION_LOST
-        LogSerial.println(F("[MQTT] Connection Lost (-3)"));
-        break;
-    case -2: // MQTT_CONNECT_FAILED
-        LogSerial.println(F("[MQTT] Connection Failed (-2)"));
-        break;
-    case -1: // MQTT_DISCONNECTED
-        LogSerial.println(F("[MQTT] Disconnected (-1)"));
-        break;
-    case 0:  // MQTT_CONNECTED
-        LogSerial.println(F("[MQTT] Connected (0)"));
-        break;
-    case 1:  // MQTT_CONNECT_BAD_PROTOCOL
-        LogSerial.println(F("[MQTT] Bad protocol (1)"));
-        break;
-    case 2:  // MQTT_CONNECT_BAD_CLIENT_ID
-        LogSerial.println(F("[MQTT] Bad Client ID (2)"));
-        break;
-    case 3:  // MQTT_CONNECT_UNAVAILABLE
-        LogSerial.println(F("[MQTT] Unavailable (3)"));
-        break;
-    case 4:  // MQTT_CONNECT_BAD_CREDENTIALS
-        LogSerial.println(F("[MQTT] Bad Credentials (4)"));
-        break;
-    case 5: // MQTT UNAUTHORIZED
-        LogSerial.println(F("[MQTT] Unauthorized (5)"));
-        break;
+    case -4: return "Connection timeout";
+    case -3: return "Connection lost";
+    case -2: return "Connect failed";
+    case -1: return "Disconnected";
+    case 0: return "Connected";
+    case 1: return "Bad protocol";
+    case 2: return "Bad client id";
+    case 3: return "Unavailable";
+    case 4: return "Bad credentials";
+    case 5: return "Unauthorized";
+    default: return "Unknown";
     }
 }
 
+// HMS severity is the top 16 bits of the 32-bit `code` field.
+inline uint8_t ParseHMSSeverity(uint32_t code)
+{
+    uint32_t level = code >> 16;
+    return (level >= 1 && level <= 4) ? (uint8_t)level : (uint8_t)0;
+}
+
+void ParseMQTTState(int code)
+{
+    LogSerial.printf("[MQTT] %s (%d)\n", mqttStateText(code), code);
+}
 
 #endif

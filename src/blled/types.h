@@ -135,6 +135,12 @@ struct PrinterState
     char amsTrayColor[10] = "";      // "#rrggbb" of the active tray (tray_color is RRGGBBAA)
     uint8_t amsHumidity = 0;         // ams.ams[0].humidity (1..5 index as reported)
 
+    // change counter: incremented by the MQTT parser ONLY for user-visible events
+    // (stage, gcode_state, lights, door, HMS, pause command).  The LED logic uses
+    // it to restart the inactivity timer without being re-triggered by the
+    // once-per-second temperature/progress churn of an X1.  (v3 addition)
+    uint32_t activityCount = 0;
+
     // HMS
     HmsEntry hms[HMS_MAX];
     uint8_t hmsCount = 0;

@@ -92,6 +92,11 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
   mode, so the portal never redirected).
 * Boot WiFi connect no longer aborts to AP mode on the first transient `WL_DISCONNECTED` (upstream
   stranded the device in AP mode after a router reboot); it keeps trying for ~60 s first.
+* **Captive portal:** the OS connectivity probes (`/generate_204`, `/hotspot-detect.html`,
+  `/connecttest.txt`, `/ncsi.txt`, `/canonical.html`, `/success.txt`, …) are answered with an
+  absolute redirect to `http://192.168.4.1/wifi`, so phones and laptops show the "sign in to
+  network" prompt and land on the setup page automatically. DNS TTL lowered to 30 s.
+* Serial provisioning accepts `{"resetAuth":true}` to clear a forgotten web-UI password.
 * **AP-mode recovery:** when the device fell back to the setup AP although credentials exist, it
   retries the station connection in the background every 2 minutes (AP+STA for 30 s) and restarts
   into normal mode as soon as it connects. The captive portal stays reachable throughout.

@@ -87,6 +87,36 @@ static void handleWiFiSetupPage(AsyncWebServerRequest *request)
 }
 
 // ---------------------------------------------------------------------------
+// Captive portal (AP mode)
+//
+// Phones and laptops decide whether to pop the "sign in to network" prompt by
+// fetching a well-known probe URL right after joining a WiFi network and
+// checking for an exact expected answer. Anything else - including a redirect -
+// means "captive", so answering every probe with a 302 to the setup page both
+// triggers the prompt and lands the user on /wifi. The DNS server started in
+// startAPMode() resolves every name to the AP address, so the probe requests
+// reach us in the first place. HTTPS probes cannot be intercepted (by design).
+// ---------------------------------------------------------------------------
+static const char *const CAPTIVE_PROBES[] = {
+    "/generate_204", "/gen_204",                          // Android, Chrome OS
+    "/hotspot-detect.html", "/library/test/success.html", // iOS / macOS
+    "/connecttest.txt", "/ncsi.txt", "/redirect",         // Windows
+    "/canonical.html", "/success.txt",                    // Firefox
+    "/check_network_status.txt", "/nm-check.txt",         // NetworkManager / KDE
+};
+
+// Absolute URL: captive-portal mini browsers do not always resolve names, and
+// a relative Location is resolved against whatever host the probe used.
+static void captiveRedirect(AsyncWebServerRequest *request)
+{
+    String url = String("http://") + WiFi.softAPIP().toString() + "/wifi";
+    AsyncWebServerResponse *response = request->beginResponse(302, "text/plain", "");
+    response->addHeader("Location", url);
+    response->addHeader("Cache-Control", "no-store");
+    request->send(response);
+}
+
+// ---------------------------------------------------------------------------
 // Legacy aliases (section 7).  Kept so old bookmarks/scripts keep working.
 // ---------------------------------------------------------------------------
 static void handleLegacyGetConfig(AsyncWebServerRequest *request)
@@ -254,7 +284,7 @@ void setupWebserver()
     webServer.on(AsyncURIMatcher::exact("/"), HTTP_GET, [](AsyncWebServerRequest *request)
                  {
         if (isApMode())
-            return request->redirect("/wifi");
+            return captiveRedirect(request);
         handleIndex(request); });
     webServer.on(AsyncURIMatcher::exact("/index.html"), HTTP_GET, handleIndex);
     webServer.on(AsyncURIMatcher::exact("/wifi"), HTTP_GET, handleWiFiSetupPage);
@@ -277,6 +307,16 @@ void setupWebserver()
     webServer.on(AsyncURIMatcher::exact("/update"), HTTP_POST, handleApiUpdateDone, handleApiUpdateUpload);
     webServer.on(AsyncURIMatcher::exact("/configrestore"), HTTP_POST, handleApiRestoreDone, handleApiRestoreUpload);
 
+    // ---- captive-portal probes (only meaningful in AP mode) ----------------
+    for (size_t i = 0; i < sizeof(CAPTIVE_PROBES) / sizeof(CAPTIVE_PROBES[0]); i++)
+    {
+        webServer.on(AsyncURIMatcher::exact(CAPTIVE_PROBES[i]), HTTP_ANY, [](AsyncWebServerRequest *request)
+                     {
+            if (isApMode())
+                return captiveRedirect(request);
+            request->send(404, "text/plain", "not found"); });
+    }
+
     // ---- WebSocket ---------------------------------------------------------
     // REVIEW #29: the handshake goes through the same auth as every other route.
     ws.handleHandshake([](AsyncWebServerRequest *request) -> bool
@@ -292,7 +332,7 @@ void setupWebserver()
         if (request->url().startsWith("/api/"))
             return apiError(request, 404, "no such endpoint");
         if (isApMode())
-            return request->redirect("/wifi"); // captive-portal catch-all
+            return captiveRedirect(request); // captive-portal catch-all
         request->send(404, "application/json", "{\"error\":\"not found\"}"); });
 
     // The WebSerial log socket (/webserialws) is owned by the library; give it

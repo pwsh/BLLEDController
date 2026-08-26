@@ -59,6 +59,14 @@ void serialLoop()
     changed |= serialCopyField(doc, "accessCode", "printercode", printerConfig.accessCode, sizeof(printerConfig.accessCode));
     changed |= serialCopyField(doc, "serialNumber", "printerserial", printerConfig.serialNumber, sizeof(printerConfig.serialNumber));
     changed |= serialCopyField(doc, "host", NULL, globalVariables.Host, sizeof(globalVariables.Host));
+    // {"resetAuth":true} clears the web-UI username/password (lost-password recovery over USB).
+    if (doc["resetAuth"].as<bool>())
+    {
+        securityVariables.HTTPUser[0] = '\0';
+        securityVariables.HTTPPass[0] = '\0';
+        Serial.println(F("Web UI authentication cleared"));
+        changed = true;
+    }
 
     if (!changed)
         return;

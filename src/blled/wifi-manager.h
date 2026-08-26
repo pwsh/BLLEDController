@@ -303,7 +303,8 @@ void startAPMode()
     delay(500);
     WiFi.softAP("BLLED_AP");
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    dnsServer.start(53, "*", apIP);
+    dnsServer.setTTL(30);
+    dnsServer.start(53, "*", apIP); // every name -> us (captive portal)
     globalVariables.apMode = true;
 
     Serial.print(F("[WiFiManager] AP started on IP: "));

@@ -200,6 +200,7 @@ struct PrinterConfig
     COLOR maintenanceColor;            // default WW+CW 255
     COLOR testColor;                   // default #3F3CFB
     COLOR wifiColor;                   // boot/scan colour, default #FFA500
+    COLOR preheatColor;                // heat-up blend start colour (cold), default #FF6A00
     PrintingVisual printingVisual = PrintingVisual::Solid; // json "printingVisual": solid|progress|breathe
     PreheatVisual preheatVisual = PreheatVisual::Solid;    // json "preheatVisual": solid|tempglow
 

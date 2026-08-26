@@ -261,6 +261,7 @@ static const ConfigField CONFIG_FIELDS[] = {
     {"maintenance", K_COLOR, &printerConfig.maintenanceColor, 0, 0, 0},
     {"test", K_COLOR, &printerConfig.testColor, 0, 0, 0},
     {"wifi", K_COLOR, &printerConfig.wifiColor, 0, 0, 0},
+    {"preheat", K_COLOR, &printerConfig.preheatColor, 0, 0, 0},
     // --- print events -------------------------------------------------------
     {"finishIndication", K_BOOL, &printerConfig.finishIndication, 0, 0, 0},
     {"finish", K_COLOR, &printerConfig.finishColor, 0, 0, 0},
@@ -407,6 +408,7 @@ void applyConfigDefaults()
     printerConfig.maintenanceColor = hex2rgb("#000000", 255, 255); // warm+cold white
     printerConfig.testColor = hex2rgb("#3F3CFB", 0, 0);            // violet
     printerConfig.wifiColor = hex2rgb("#FFA500", 0, 0);            // orange
+    printerConfig.preheatColor = hex2rgb("#FF6A00", 0, 0);         // heat-up blend start (cold)
     printerConfig.finishColor = hex2rgb("#00FF00", 0, 0);          // green
 
     printerConfig.stage14Color = hex2rgb("#000000", 0, 0); // cleaning nozzle   - off

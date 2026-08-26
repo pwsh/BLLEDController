@@ -51,7 +51,8 @@ var TIPS = {
   testColor: "Colour used while LED mode is Test. A saturated colour (default #3F3CFB) makes it obvious which of the five channels are actually wired: if you see white instead of blue your warm/cold white lines are swapped in.",
   wifiColor: "Shown during boot while the controller is joining WiFi, and on the setup access point. Default orange. If the strip stays this colour, BLLED never finished connecting — check the Connection tab.",
   printingVisual: "How the running colour behaves during an actual print. Solid never changes; Progress blends the running colour towards the finish colour as the print advances, so a glance at the strip tells you roughly how far along it is; Breathe pulses gently so you can see at a distance that the machine is still working.",
-  preheatVisual: "How the strip looks while the bed or hotend is coming up to temperature. Solid shows the plain running colour; Temp glow ramps the brightness with the temperature and adds a red tint below 30 %, so the strip visibly 'warms up' with the printer.",
+  preheatVisual: "How the strip looks while the bed or hotend is coming up to temperature. Solid shows the plain running colour. Heat-up blend starts from the cold colour below (default orange) and blends into the running colour as the slowest heater approaches its target, so the strip visibly warms up with the printer and only turns white once nozzle and bed are both at temperature.",
+  preheatColor: "The cold end of the heat-up blend: what the strip shows when the heaters have just switched on. As they warm up it fades into the running colour. Default orange — pick something clearly different from the running colour so the change is obvious across the room.",
 
   /* --- print events --- */
   finishIndication: "Switches the strip to the finish colour when a print completes, so you can see from across the room that the plate is ready. Turn off if you would rather the LEDs just go back to the normal running colour.",
@@ -133,7 +134,7 @@ var MODES = [
 ];
 var EFFECTS = [["solid", "Solid"], ["breathe", "Breathe"], ["blink", "Blink"], ["fastblink", "Fast blink"]];
 var PVIS = [["solid", "Solid"], ["progress", "Progress blend"], ["breathe", "Breathe"]];
-var HVIS = [["solid", "Solid"], ["tempglow", "Temp glow"]];
+var HVIS = [["solid", "Solid"], ["tempglow", "Heat-up blend"]];
 var EXITS = [["door", "Door open/close"], ["timer", "After a timer"]];
 
 /* --------------------------------------------------------------- schema */
@@ -160,7 +161,8 @@ var SECTIONS = [
     ] },
     { title: "Visualisations", desc: "Extra life for the running colour while the printer works.", fields: [
       { k: "printingVisual", l: "While printing", t: "select", opts: PVIS, fx: "printing" },
-      { k: "preheatVisual", l: "While preheating", t: "select", opts: HVIS, fx: "preheat" }
+      { k: "preheatVisual", l: "While preheating", t: "select", opts: HVIS, fx: "preheat" },
+      (function () { var f = C("preheatColor", "preheat", "Cold (heat-up) colour"); f.when = function (d) { return d.preheatVisual === "tempglow"; }; return f; })()
     ] }
   ] },
 
@@ -994,9 +996,10 @@ function tick() {
       else n.style.background = rgbCss(a, v === "breathe" ? modulation("breathe", sp, now) : 1);
     } else if (kind === "preheat") {
       var c = composite.apply(null, hex2rgb(draft.runningRGB).concat([num(draft.runningWW, 0), num(draft.runningCW, 0)]));
+      var cold = composite.apply(null, hex2rgb(draft.preheatRGB || "#ff6a00").concat([num(draft.preheatWW, 0), num(draft.preheatCW, 0)]));
       var r2 = (now % 6000) / 6000;
       n.style.background = v === "tempglow"
-        ? rgbCss([c[0] * (0.15 + 0.85 * r2) + (r2 < 0.3 ? 60 : 0), c[1] * (0.15 + 0.85 * r2), c[2] * (0.15 + 0.85 * r2)])
+        ? rgbCss([cold[0] + (c[0] - cold[0]) * r2, cold[1] + (c[1] - cold[1]) * r2, cold[2] + (c[2] - cold[2]) * r2])
         : rgbCss(c);
     }
   });

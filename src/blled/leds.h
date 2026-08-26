@@ -532,13 +532,14 @@ static COLOR ledPrintingColor(const PrinterState &st, LedDecision &d)
 }
 
 // The colour shown while preheating, honouring preheatVisual.
+// "tempglow": blend from preheatColor (cold) to the running colour as the LEAST
+// ready heater approaches its target, so the strip visibly "warms up" and only
+// turns into the normal running colour once nozzle AND bed are at temperature.
 static COLOR ledPreheatColor(const PrinterState &st)
 {
     if (printerConfig.preheatVisual != PreheatVisual::TempGlow)
         return printerConfig.runningColor;
 
-    // Follow the LEAST ready heater: the strip only reaches full brightness
-    // once everything is at temperature (a nearly-hot bed must not mask a cold nozzle).
     float ratio = 1.0f;
     bool any = false;
     if (!isnan(st.nozzleTemp) && !isnan(st.nozzleTarget) && st.nozzleTarget > 1.0f)
@@ -555,11 +556,11 @@ static COLOR ledPreheatColor(const PrinterState &st)
         ratio = 0.0f;
     ratio = constrain(ratio, 0.0f, 1.0f);
 
-    COLOR c = ledScale(printerConfig.runningColor, 0.15f + 0.85f * ratio);
-    if (ratio < 0.30f)
-        c.r = (short)constrain((int)c.r + 60, 0, 255); // cold = slight red tint
-    colorSyncHex(c);
-    return c;
+    // Heaters idle at room temperature already read ~10-25 % of a print target;
+    // stretch the useful part of the range so the blend starts from the cold colour.
+    float f = (ratio - 0.2f) / 0.75f;
+    f = constrain(f, 0.0f, 1.0f);
+    return ledBlend(printerConfig.preheatColor, printerConfig.runningColor, f);
 }
 
 static void ledDecide(const PrinterState &st, LedDecision &d)

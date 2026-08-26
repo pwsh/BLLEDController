@@ -1170,6 +1170,7 @@ function boot() {
   loadInfo();
   api("/api/status").then(onStatus).catch(function () { setLive("bad", "offline"); });
   connectWs();
+  window.BLLED_BOOTED = true;
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

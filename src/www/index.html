@@ -7,6 +7,24 @@
 <title>BLLED</title>
 <link rel="icon" href="/favicon.png">
 <link rel="stylesheet" href="/style.css">
+<script>
+/* Boot self-diagnosis: if app.js fails to load or throws before it can run, say so in the
+   header instead of leaving the page silently blank (seen on iOS Safari). */
+window.BLLED_BOOTED = false;
+window.addEventListener("error", function (e) {
+  var h = document.getElementById("hostline");
+  if (!h || window.BLLED_BOOTED) return;
+  var src = (e.filename || "").split("/").pop();
+  h.textContent = "script error: " + (e.message || e.type) + (src ? " (" + src + ":" + e.lineno + ")" : "");
+});
+window.addEventListener("load", function () {
+  setTimeout(function () {
+    var h = document.getElementById("hostline");
+    if (h && !window.BLLED_BOOTED && h.textContent === "connecting…")
+      h.textContent = "app.js did not run — pull down to reload (browser: " + navigator.userAgent.replace(/^.*\((.*?)\).*$/, "$1").slice(0, 40) + ")";
+  }, 6000);
+});
+</script>
 </head>
 <body>
 
@@ -199,6 +217,6 @@
   <div class="row" style="justify-content:flex-end"><button class="btn" id="m-no">Cancel</button><button class="btn dan" id="m-yes">Confirm</button></div>
 </div></div>
 
-<script src="/app.js"></script>
+<script src="/app.js" onerror="document.getElementById('hostline').textContent='app.js failed to load'"></script>
 </body>
 </html>

@@ -417,11 +417,15 @@ static void ParseCallback(char *topic, byte *payload, unsigned int length)
                 if (layer > ns.layer && ns.layerStartMs != 0)
                 {
                     uint32_t dur = (uint32_t)(now - ns.layerStartMs);
-                    ns.layerAvgMs = (ns.layerAvgMs == 0) ? dur : (uint32_t)(ns.layerAvgMs * 0.6f + dur * 0.4f);
+                    if (ns.layerTimingSeeded || ns.layer == 0)
+                        ns.layerAvgMs = (ns.layerAvgMs == 0) ? dur : (uint32_t)(ns.layerAvgMs * 0.6f + dur * 0.4f);
+                    // else: the first interval after boot started mid-layer - skip it
+                    ns.layerTimingSeeded = true;
                 }
                 else
                 {
                     ns.layerAvgMs = 0; // new print / layer counter reset
+                    ns.layerTimingSeeded = false;
                 }
                 ns.layerStartMs = now;
                 ns.layer = layer;

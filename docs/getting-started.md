@@ -50,17 +50,13 @@ both bands behind one SSID the join can fail — give the 2.4 GHz band its own n
 The image you want is `firmware/esp32dev/BLLC_V3.0.0.bin` from the repository. It is a **complete**
 image — bootloader, partition table and application — which is why it goes to address `0x0`.
 
-### With a browser
+### With a browser (recommended)
 
-1. Connect the board to your computer with the USB data cable.
-2. Open an ESP Web Tools flasher page such as <https://esp.huhn.me> in **Chrome or Edge**
-   (Firefox and Safari cannot talk to serial ports).
-3. Click **Connect** and pick the board's serial port from the browser's dialog.
-4. Choose the file `firmware/esp32dev/BLLC_V3.0.0.bin` and set the address to **`0x0`**.
-5. Erase, then flash. It takes under a minute.
-
-The repository also carries an ESP Web Tools manifest at `firmware/manifest-v3.json` if you are
-hosting your own flasher page.
+Open the **[Flash firmware]({{ site.baseurl }}/flash/)** page of this site in **Chrome or Edge**
+on a computer, connect the board with the USB data cable and click **Install BLLED v3.0.0**. The
+page carries the firmware image itself; the browser writes the complete image (bootloader,
+partition table, application) to address `0x0` and the board reboots when it is done. Firefox,
+Safari and phones cannot talk to serial ports — use another browser or the command line below.
 
 ### From the command line
 

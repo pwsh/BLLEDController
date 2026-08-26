@@ -69,9 +69,9 @@ code** (printer screen → Settings → Network / General). The printer must be 
 
 Pick one:
 
-- **Browser (easiest):** open <https://esp.huhn.me> (or any ESP Web Tools page) in Chrome or Edge,
-  connect the board over USB, choose `firmware/esp32dev/BLLC_V3.0.0.bin` from this repository and
-  flash it at address **0x0**.
+- **Browser (easiest):** open the [Flash firmware](https://pwsh.github.io/BLLEDController/flash/) page
+  in Chrome or Edge, connect the board over USB and click *Install* — the page hosts the image and
+  writes it at address 0x0.
 - **Command line:**
   ```
   pip install esptool

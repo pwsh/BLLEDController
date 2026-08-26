@@ -44,7 +44,7 @@ nothing goes through the cloud.
 
 ## Get going in three steps
 
-1. **Flash over USB.** Connect the board, open a web flasher (or run `esptool`) and write
+1. **Flash over USB.** Connect the board, open the [Flash firmware]({{ site.baseurl }}/flash/) page in Chrome/Edge (or run `esptool`) and write
    `firmware/esp32dev/BLLC_V3.0.0.bin` at address `0x0`.
 2. **Join `BLLED_AP`.** The strip turns pink and the controller opens its own network. Your phone
    offers a *Sign in to network* prompt; tap it, or open `http://192.168.4.1`.

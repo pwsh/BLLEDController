@@ -264,6 +264,22 @@ void buildStatusJson(JsonDocument &doc)
     pr["remainingMin"] = st.remainingMin;
     pr["layer"] = st.layer;
     pr["totalLayers"] = st.totalLayers;
+    {
+        // Estimated progress within the current layer (0-100): elapsed since the
+        // layer began over the running average layer time; -1 while no estimate
+        // exists yet (first layer of a print, or idle).
+        int lp = -1;
+        bool running = (strcmp(st.gcodeState, "RUNNING") == 0);
+        if (running && st.layerAvgMs > 0 && st.layerStartMs != 0)
+        {
+            unsigned long elapsed = now - st.layerStartMs;
+            lp = (int)((elapsed * 100UL) / st.layerAvgMs);
+            if (lp > 99)
+                lp = 99; // a slow layer overruns the average: hold at 99 until it flips
+        }
+        pr["layerProgress"] = lp;
+        pr["layerAvgSec"] = (uint32_t)(st.layerAvgMs / 1000UL);
+    }
     apiSetTemp(pr, "nozzleTemp", st.nozzleTemp);
     apiSetTemp(pr, "nozzleTarget", st.nozzleTarget);
     apiSetTemp(pr, "bedTemp", st.bedTemp);

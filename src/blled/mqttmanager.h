@@ -407,7 +407,26 @@ static void ParseCallback(char *topic, byte *payload, unsigned int length)
         if (!print["mc_remaining_time"].isNull())
             ns.remainingMin = (uint32_t)max(0, print["mc_remaining_time"].as<int>());
         if (!print["layer_num"].isNull())
-            ns.layer = (uint16_t)max(0, print["layer_num"].as<int>());
+        {
+            uint16_t layer = (uint16_t)max(0, print["layer_num"].as<int>());
+            if (layer != ns.layer)
+            {
+                // Estimate progress within a layer from the time between layer changes:
+                // keep a weighted average of recent layer durations (recent ones count
+                // more - layer times drift with geometry) and restart the layer clock.
+                if (layer > ns.layer && ns.layerStartMs != 0)
+                {
+                    uint32_t dur = (uint32_t)(now - ns.layerStartMs);
+                    ns.layerAvgMs = (ns.layerAvgMs == 0) ? dur : (uint32_t)(ns.layerAvgMs * 0.6f + dur * 0.4f);
+                }
+                else
+                {
+                    ns.layerAvgMs = 0; // new print / layer counter reset
+                }
+                ns.layerStartMs = now;
+                ns.layer = layer;
+            }
+        }
         if (!print["total_layer_num"].isNull())
             ns.totalLayers = (uint16_t)max(0, print["total_layer_num"].as<int>());
         if (!print["print_error"].isNull())

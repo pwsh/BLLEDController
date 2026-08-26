@@ -127,6 +127,9 @@ Notes:
   did not actuate its switch when closed the bit never changed; pressing the switch by hand flipped it.
   While `false` the UI shows a muted *Door: not reported* chip and door-based features fall back to
   their timers. (The top lid has no sensor.)
+* `layerProgress` is an **estimate** of progress within the current layer (0-99): time since
+  `layer_num` last advanced divided by a weighted average of recent layer durations (`layerAvgSec`);
+  `-1` while there is no estimate (first layer, paused, idle). The printer does not report this itself.
 * `wifiSignal` is the *printer's* own RSSI; `device.rssi` is the controller's.
 * `mqtt.*.state` is the raw `PubSubClient::state()` code (`0` connected, negative = error).
 

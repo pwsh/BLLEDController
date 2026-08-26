@@ -50,8 +50,9 @@ save button:
   the strip white three times so you can tell two controllers apart.
 
 **The printer card** shows two concentric progress rings — the thick outer one is the print
-percentage, the thin inner one is layer progress (`layer / totalLayers`), with a small
-`print % / layers` legend under them and the percentage plus time remaining in the middle.
+percentage, the thin inner one is the *estimated* progress within the current layer (time since the layer
+began over the average time of recent layers — the printer does not report this itself, so it is
+empty on the first layer), with a small `print % / this layer (est.)` legend under them and the percentage plus time remaining in the middle.
 Beside the rings a **vertical layer gauge** runs from a printer glyph at the bottom (first
 layer) to a marker at the top (last layer); the knob rides up as the print grows and carries
 the layer percentage, and the caption underneath gives the exact `layer / total layers`. Both

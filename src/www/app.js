@@ -862,8 +862,10 @@ function renderDash(s) {
 
   /* layer progress: inner ring (r=32, C=201) + the vertical gauge beside it */
   var tot = num(p.totalLayers, 0), lay = num(p.layer, 0);
-  var lpct = tot > 0 ? Math.round(clamp(lay / tot, 0, 1) * 100) : 0;
-  $("#d-ring2").setAttribute("stroke-dasharray", (lpct * 2.011).toFixed(1) + " 201");
+  var lpct = tot > 0 ? Math.round(clamp(lay / tot, 0, 1) * 100) : 0;           // layer height (gauge)
+  var cur = (typeof p.layerProgress === 'number' && p.layerProgress >= 0) ? p.layerProgress : 0; // within current layer (inner ring)
+  $("#d-ring2").setAttribute("stroke-dasharray", (cur * 2.011).toFixed(1) + " 201");
+  $("#d-ring2").style.opacity = (p.layerProgress >= 0) ? '' : '.35';
   $("#d-lg").style.setProperty("--p", String(lpct));
   $("#d-lknob").textContent = lpct + "%";
   $("#d-layer").textContent = tot > 0 ? lay + " / " + tot + " layers"

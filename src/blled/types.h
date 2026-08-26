@@ -108,6 +108,8 @@ struct PrinterState
     uint32_t remainingMin = 0;       // mc_remaining_time
     uint16_t layer = 0;              // layer_num
     uint16_t totalLayers = 0;        // total_layer_num
+    unsigned long layerStartMs = 0;  // millis() when layer_num last advanced (0 = unknown)
+    uint32_t layerAvgMs = 0;         // running average duration of recent layers (0 = none yet)
     char jobName[64] = "";           // subtask_name (fallback: gcode_file basename)
     char printType[8] = "";          // print_type ("local", "cloud", "")
     int32_t printError = 0;          // print_error

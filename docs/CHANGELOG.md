@@ -106,8 +106,9 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
 * The preheat visual (`preheatVisual=tempglow`, "Heat-up blend") is now a real colour change: it
   blends from a new `preheatColor` (default orange `#FF6A00`) into the running colour as the
   slowest heater approaches its target. The first version only dimmed the white, which was invisible.
-* **Dashboard layer progress:** a second, thinner ring inside the print-progress ring shows layer
-  progress (`layer / totalLayers`), and a vertical layer gauge next to it (bed glyph at the bottom,
+* **Dashboard layer progress:** a second, thinner ring inside the print-progress ring shows the
+  estimated progress *within the current layer* (`printer.layerProgress`: time since the layer began
+  over a weighted average of recent layer times; -1 on the first layer), and a vertical layer gauge next to it (bed glyph at the bottom,
   fill + knob with the layer percentage, caption `89 / 335 layers`). Pure SVG/CSS, updated only when a
   status frame arrives.
 * **Door robustness:** the status API exposes `printer.doorKnown` (has a door change ever been seen

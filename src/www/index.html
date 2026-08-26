@@ -92,7 +92,7 @@ window.addEventListener("load", function () {
       <div class="card">
         <header><h2 id="d-model">Printer</h2><span class="dot" id="d-pdot"></span><span class="sub" id="d-pconn"></span></header>
         <div class="ring">
-          <div class="ringcol" title="Outer ring: print progress · inner ring: layer progress">
+          <div class="ringcol" title="Outer ring: print progress. Inner ring: estimated progress within the current layer (time since the layer began over the average time of recent layers; empty on the first layer). The gauge on the right shows layer height.">
             <div class="ringwrap">
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle class="trk" cx="50" cy="50" r="42" fill="none" stroke-width="9"></circle>
@@ -102,7 +102,7 @@ window.addEventListener("load", function () {
               </svg>
               <div class="mid"><b id="d-pct">—</b><small id="d-eta">—</small></div>
             </div>
-            <p class="rleg"><span><i class="k1"></i>print %</span><span><i class="k2"></i>layers</span></p>
+            <p class="rleg"><span><i class="k1"></i>print %</span><span><i class="k2"></i>this layer (est.)</span></p>
           </div>
 
           <div class="lg" id="d-lg" title="Layer progress: bottom = first layer, top = last layer">

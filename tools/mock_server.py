@@ -309,6 +309,7 @@ class Sim(object):
             "overrideStage": 999,
             "progress": progress, "remainingMin": remaining,
             "layer": layer, "totalLayers": self.total_layers if idx >= 8 else 0,
+            "layerProgress": (int((time.time() * 7) % 100) if idx >= 8 and layer > 1 else -1), "layerAvgSec": 42,
             "nozzleTemp": round(noz, 1), "nozzleTarget": round(noz_tgt, 1),
             "bedTemp": round(bed, 1), "bedTarget": round(bed_tgt, 1),
             "chamberTemp": round(chamber, 1),

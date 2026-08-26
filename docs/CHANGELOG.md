@@ -90,6 +90,14 @@ Complete rework of the controller firmware. See `docs/ARCHITECTURE.md` for the d
 * `/config.json` and `/getConfig` never return the WiFi or web-UI password.
 * The captive-portal DNS server now answers in AP mode (it was behind a flag that is never set in AP
   mode, so the portal never redirected).
+* Boot WiFi connect no longer aborts to AP mode on the first transient `WL_DISCONNECTED` (upstream
+  stranded the device in AP mode after a router reboot); it keeps trying for ~60 s first.
+* **AP-mode recovery:** when the device fell back to the setup AP although credentials exist, it
+  retries the station connection in the background every 2 minutes (AP+STA for 30 s) and restarts
+  into normal mode as soon as it connects. The captive portal stays reachable throughout.
+* `isP1Printer` now has real semantics instead of rewriting colours in the browser: lidar stage
+  colours are never applied, the finish indication always ends by timer, and the door double-close
+  gesture is ignored.
 
 ### Configuration keys
 
@@ -142,5 +150,123 @@ first-layer / nozzle-clog `#0000FF`, HMS serious+fatal / filament runout / front
 
 ### Known limitations
 
+* **Upgrading from v2.x needs a USB flash once.** v3 uses the `min_spiffs` partition table (the
+  image is ~1.37 MB, larger than the 1.31 MB app slot of the v2 default table), so the v2 OTA page
+  cannot install it. Flash `.firmware/BLLC_V3.0.0.bin` (merged image, offset 0) with the web
+  flasher or esptool; afterwards OTA works normally with `.firmware/BLLC_V3.0.0.bin.ota`.
 * HTTP Basic authentication is sent in the clear; the device does not do TLS for its own web server.
 * The printer's TLS certificate is not verified (`setInsecure()`), as in v2.
+
+---
+
+## API, WebSocket, external MQTT and Home Assistant (3.0.0)
+
+### New: one status model everywhere
+
+`GET /api/status` (`docs/API.md` §2) exposes everything the printer reports and everything the
+controller decides — gcode state, stage + stage name, progress, layer/total layers, remaining time,
+nozzle/bed/chamber temperatures with targets, all four fans, door/chamber-light/work-light/SD-card
+flags, job name, print type, print error, AMS summary, the full HMS list with severity, module and
+"ignored" flag — plus the LED decision (actual PWM output, effect, human-readable reason, override
+state) the finish/inactivity timers, and both MQTT connection states.
+The **identical object** is pushed over the WebSocket and published on the external MQTT broker, so
+the UI, an automation and Home Assistant all see exactly the same data (`docs/REVIEW.md` #35).
+
+v2 exposed none of this: the WebSocket payload was 7 fields and there was no REST status endpoint
+at all. Temperatures are `null` when the printer has not reported them, rather than 0.
+
+### New endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/status` | the full status model |
+| `GET /api/config` | flat config JSON, secrets masked |
+| `PUT /api/config` | **partial** merge, validated, reports `restartRequired` |
+| `GET /api/config/backup` | download `blledconfig.json` (secrets included) |
+| `POST /api/config/restore` | multipart restore, validated before it replaces anything |
+| `POST /api/config/reset` | factory reset (was a **GET**) |
+| `POST /api/led` / `DELETE /api/led` | manual colour/effect override with an optional duration |
+| `POST /api/led/mode` | persist `ledMode` |
+| `POST /api/led/brightness` | persist `brightness` |
+| `POST /api/led/identify` | three white blinks to find the device |
+| `POST /api/action` | `restart`, `chamberLight`, `workLight`, `pushall`, `rescanWifi`, `discover`, `reconnectMqtt` |
+| `GET /api/printers` | SSDP discovery cache |
+| `GET /api/wifi/scan` | asynchronous WiFi scan |
+| `GET /api/info` | firmware/build/chip/flash/SDK/pins/library versions |
+| `POST /api/update` | OTA firmware upload (now authenticated) |
+| `WS /ws` | the status object at 1 Hz + immediate pushes on change; accepts `{"cmd":"led"}` / `{"cmd":"clearLed"}` |
+
+All errors are `{"error":"..."}` with a real status code (400/401/404/413) instead of plain text.
+
+### Removed endpoints
+
+| Removed | Replacement |
+|---|---|
+| `POST /submitConfig` | `PUT /api/config` |
+| `POST /submitWiFi` | `PUT /api/config` + `POST /api/action {"action":"restart"}` |
+| `GET /factoryreset` | `POST /api/config/reset` |
+| `GET /config.json` | `GET /api/config` (it leaked the WiFi and web passwords in plaintext) |
+| `GET /wifiScan` | `GET /api/wifi/scan` |
+
+Kept as aliases: `GET /getConfig`, `GET /configfile.json`, `GET /printerList`, `POST /update`,
+`POST /configrestore`.
+
+### Security fixes
+
+* **`POST /api/update` (OTA) now requires authentication** — in v2 any LAN client could flash
+  arbitrary firmware onto the device (`docs/REVIEW.md` #27, severity Critical).
+* **Config restore authenticates before the first byte is written.** In v2 the upload body handler
+  overwrote `/blledconfig.json` *before* the completion handler checked auth, so an unauthenticated
+  client could replace the whole configuration (#28).
+* **Secrets are never echoed.** `wifiPass`, `webPass` and `mqttExtPass` come back as `""` or
+  `"********"`; sending `"********"` back means "unchanged", `""` means "clear" (#29).
+* **No state-changing GET requests.** `GET /factoryreset` was a one-`<img src>` CSRF factory reset;
+  it is gone (#30).
+* **Authentication covers every route**, including static assets, the WebSocket handshake, the
+  firmware upload and the config download. AP (setup) mode stays open so the captive portal works.
+* `X-Content-Type-Options: nosniff` on every response.
+* Known remaining gaps, documented rather than fixed: HTTP Basic travels in the clear (#31), and the
+  MycilaWebSerial log socket `/webserialws` now carries the same HTTP Basic auth as `/webserial`.
+
+### New: external MQTT broker + Home Assistant (issue #10)
+
+An optional second MQTT client publishes to a broker of your choice (plain TCP, no TLS), driven
+from the MQTT task. New config keys: `mqttExtEnabled` (off), `mqttExtHost`, `mqttExtPort` (1883),
+`mqttExtUser`, `mqttExtPass`, `mqttExtBaseTopic` (default `blled/<host>`), `mqttExtIntervalSec`
+(10), `haDiscovery` (on), `haPrefix` (`homeassistant`). Enabling, disabling or repointing the
+broker takes effect immediately — no restart.
+
+Topics (base = `mqttExtBaseTopic`):
+
+* `<base>/availability` — retained `online`, LWT `offline`
+* `<base>/status` — retained, the `/api/status` object, every `mqttExtIntervalSec` and within 1 s
+  of any change
+* `<base>/led` — retained, the `led` sub-object, on change
+* `<base>/light` — retained, Home Assistant JSON-light state
+* `<base>/set` — subscribed: `{"hex"|"r,g,b,ww,cw","effect","durationSec","brightness"}`,
+  `{"clear":true}`, `{"mode":...}`, `{"brightness":n}`, `{"chamberLight":bool}`, `{"identify":true}`
+* `<base>/cmd` — subscribed: `ON`, `OFF`, `IDENTIFY`, `PUSHALL`, `RESTART`
+* `<base>/light/set` — subscribed: Home Assistant's own JSON-light command shape
+
+**Home Assistant discovery** publishes 22 retained per-entity configs (one light as the device's
+main entity, a mode select, a brightness number, 12 sensors, 4 binary sensors and 3 buttons) using
+the `~` topic shorthand and abbreviated keys, so every payload stays under 500 bytes. Turning
+`haDiscovery` off publishes empty retained payloads to the same topics once, which removes the
+entities from Home Assistant. See `docs/HA-DISCOVERY.md` for the payload shapes and
+`docs/API.md` §8 for the entity list.
+
+The ~2 kB status payload is streamed with `beginPublish()`/`write()`/`endPublish()` rather than
+buffered, so the second MQTT client only needs a 512-byte buffer.
+
+### Other
+
+* `GET /api/stages` was specified in `docs/ARCHITECTURE.md` §7.4 but is **not implemented** — it had
+  no consumer, and stage names are already delivered as `status.printer.stageName`.
+* The external-broker hook now runs on every MQTT task pass instead of only while the *printer*
+  MQTT link is up, so Home Assistant keeps receiving status (and commands keep working) when the
+  printer is switched off.
+* `POST /api/led/brightness` and `POST /api/led` reject out-of-range values with 400 instead of
+  silently clamping, so a broken client is visible. Config keys sent through `PUT /api/config` are
+  still clamped, as documented in `docs/ARCHITECTURE.md` §5.
+* `tools/test_api.sh` exercises every endpoint against a device or the mock server and prints each
+  status code.

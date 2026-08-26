@@ -719,6 +719,12 @@ static void mqttTask(void *parameter)
             continue;
         }
 
+        // External broker / Home Assistant (api workstream; weak symbol).
+        // Driven on EVERY pass: it must keep publishing (and stay reachable for
+        // commands) while the printer's own MQTT link is down.
+        if (mqttPublishLoop)
+            mqttPublishLoop();
+
         if (!mqttClient.connected())
         {
             if (printerState.online)
@@ -737,10 +743,6 @@ static void mqttTask(void *parameter)
         // Still no gcode_state 10 s after connecting? Ask for a full push.
         if (printerState.gcodeState[0] == '\0' && (millis() - mqttConnectedMs) > MQTT_STATE_UNKNOWN_MS)
             mqttSendPushAll(false);
-
-        // External broker / Home Assistant (api workstream; weak symbol).
-        if (mqttPublishLoop)
-            mqttPublishLoop();
 
         vTaskDelay(pdMS_TO_TICKS(10));
     }

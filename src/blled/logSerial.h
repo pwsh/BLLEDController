@@ -24,6 +24,12 @@ public:
     });
   }
 
+  // HTTP Basic auth for the /webserial page and its /webserialws socket
+  // (MycilaWebSerial applies it to both). Call before begin(server).
+  void setAuthentication(const char* user, const char* pass) {
+    webSerial.setAuthentication(std::string(user ? user : ""), std::string(pass ? pass : ""));
+  }
+
   void onMessage(std::function<void(const std::string&)> cb) {
     webSerial.onMessage(cb);
   }

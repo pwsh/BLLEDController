@@ -27,6 +27,8 @@
 #include "./blled/wifi-manager.h"
 #include "./blled/bblPrinterDiscovery.h"
 #include "./blled/serialmanager.h"
+#include "./blled/api.h"
+#include "./blled/mqttpublish.h"
 #include "./blled/web-server.h"
 #include "./blled/ssdp.h"
 
@@ -89,6 +91,55 @@ void setup()
 }
 
 // ---------------------------------------------------------------------------
+// AP-mode recovery: when the boot-time connect failed (router down, DHCP slow)
+// upstream stayed in AP mode until a power cycle. Every AP_RETRY_INTERVAL_MS we
+// bring the station interface up next to the AP for AP_RETRY_WINDOW_MS; if it
+// connects we restart into the normal STA boot path. The AP keeps serving the
+// captive portal the whole time, so a user can still (re)configure.
+// ---------------------------------------------------------------------------
+#define AP_RETRY_INTERVAL_MS 120000UL
+#define AP_RETRY_WINDOW_MS 30000UL
+static unsigned long apRetryStartedMs = 0;
+static bool apRetryActive = false;
+
+static void apModeRetryLoop()
+{
+    static unsigned long lastCycleMs = 0;
+    if (!globalVariables.apMode || strlen(globalVariables.SSID) == 0 || strlen(globalVariables.APPW) == 0)
+        return;
+
+    unsigned long now = millis();
+    if (!apRetryActive)
+    {
+        if (now - lastCycleMs < AP_RETRY_INTERVAL_MS)
+            return;
+        lastCycleMs = now;
+        apRetryActive = true;
+        apRetryStartedMs = now;
+        LogSerial.println(F("[WiFiManager] AP mode: retrying the station connection in the background"));
+        WiFi.mode(WIFI_AP_STA);
+        WiFi.begin(globalVariables.SSID, globalVariables.APPW);
+        return;
+    }
+
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        LogSerial.println(F("[WiFiManager] Station connected - restarting into normal mode"));
+        restartRequested = true;
+        restartRequestMs = now;
+        apRetryActive = false;
+        return;
+    }
+    if (now - apRetryStartedMs > AP_RETRY_WINDOW_MS)
+    {
+        // give the AP its channel back until the next cycle
+        WiFi.disconnect(false);
+        WiFi.mode(WIFI_AP);
+        apRetryActive = false;
+    }
+}
+
+// ---------------------------------------------------------------------------
 // loop
 // ---------------------------------------------------------------------------
 void loop()
@@ -101,12 +152,12 @@ void loop()
         dnsServer.processNextRequest();
 
     wifiLoop(); // non-blocking reconnect + async scan polling (REVIEW #6)
+    apModeRetryLoop(); // fell back to the setup AP with valid credentials? keep trying STA
 
     if (globalVariables.started)
-    {
         discoveryLoop(); // non-blocking SSDP state machine (REVIEW #3)
-        websocketLoop();
-    }
+
+    websocketLoop(); // 1 Hz status push + coalesced change pushes (section 7.5)
 
     // ---- deferred work requested by the other tasks ------------------------
     if (configDirty)
@@ -130,6 +181,17 @@ void loop()
     {
         printerStateDirty = false;
         ledDirty = true;
+        websocketNotifyChange(); // coalesced WebSocket push (api workstream)
+    }
+
+    // POST /api/config/reset -- the LittleFS write belongs to this task.
+    if (factoryResetRequested)
+    {
+        factoryResetRequested = false;
+        configDirty = false;
+        deleteConfig();
+        restartRequested = true;
+        restartRequestMs = millis();
     }
 
     // ---- LEDs: evaluate on change / at >=10 Hz, then one PWM tick ----------

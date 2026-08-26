@@ -2,368 +2,231 @@
 #define _BLLEDWEB_SERVER
 
 // ---------------------------------------------------------------------------
-// web-server.h -- TRANSITIONAL. Minimal port of the upstream routes onto the v3
-// state/config so the project builds and stays usable.  The API workstream
-// replaces this file with api.h + a rewritten web-server.h (ARCHITECTURE.md §7);
-// do not add features here.
+// web-server.h -- HTTP server wiring: static assets, legacy aliases, the
+// captive portal, the WebSocket and the /api/* routes from api.h
+// (ARCHITECTURE.md section 7).
 //
-// Already fixed while porting (cheap, in-file):
-//   * OTA upload requires authentication (REVIEW #27)
-//   * /configrestore checks auth in the upload handler at index == 0 and
-//     validates the JSON before replacing the config (REVIEW #28)
-//   * /config.json no longer echoes any password (REVIEW #29)
-//   * the WiFi scan endpoint uses the asynchronous scan (REVIEW #5)
-//   * mDNS failure no longer hangs the boot in `while(1) delay(500)` (REVIEW #16)
+// Security (docs/REVIEW.md #27-#31):
+//   * every route is behind isAuthorized() (HTTP Basic when webUser+webPass are
+//     set and the device is not in AP mode) -- static assets, OTA, restore and
+//     the WebSocket handshake included
+//   * /submitConfig, /submitWiFi, GET /factoryreset and /config.json are GONE
+//     (the last two were CSRF / plaintext-secret holes)
+//   * X-Content-Type-Options: nosniff on every response
 //
-// Threading: all handlers run on the AsyncTCP task.  They only read/write the
-// config structs and raise configDirty/ledDirty/restartRequested; LittleFS
-// writes (except the restore upload, which streams to a temp file) and LED work
-// happen in the main loop.
+// Threading: every handler runs on the AsyncTCP task; see api.h.  The
+// WebSocket push runs from the main loop via websocketLoop().
 // ---------------------------------------------------------------------------
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
-#include <Update.h>
 #include <ESPAsyncWebServer.h>
 
 #include "types.h"
 #include "stages.h"
+#include "logSerial.h"
 #include "filesystem.h"
 #include "leds.h"
 #include "wifi-manager.h"
 #include "bblPrinterDiscovery.h"
+#include "api.h"
+#include "mqttpublish.h"
 
 AsyncWebServer webServer(80);
 AsyncWebSocket ws("/ws");
 
 #include "../www/www.h"
 
-static unsigned long lastWsPush = 0;
-static const unsigned long wsPushInterval = 1000;
+// ---- WebSocket push cadence (section 7.5) ---------------------------------
+#define WS_PUSH_INTERVAL_MS 1000UL
+#define WS_COALESCE_MS 200UL
+#define WS_CLEANUP_INTERVAL_MS 5000UL
+#define WS_MAX_CLIENTS 4
 
-static bool isApMode()
-{
-    return globalVariables.apMode || (WiFi.getMode() & WIFI_AP);
-}
+static unsigned long wsLastPushMs = 0;
+static unsigned long wsLastCleanupMs = 0;
+static volatile bool wsChangePending = false;
+static uint8_t wsLastOutput[5] = {0, 0, 0, 0, 0};
 
-bool isAuthorized(AsyncWebServerRequest *request)
-{
-    if (isApMode())
-        return true; // captive portal must stay reachable
-    if (strlen(securityVariables.HTTPUser) == 0 || strlen(securityVariables.HTTPPass) == 0)
-        return true;
-    return request->authenticate(securityVariables.HTTPUser, securityVariables.HTTPPass);
-}
+// ---------------------------------------------------------------------------
+// Static assets
+// ---------------------------------------------------------------------------
 
-static void sendGz(AsyncWebServerRequest *request, const uint8_t *data, size_t len, const char *mime)
+// Long-lived assets are versioned by the firmware they are baked into, so a
+// short max-age plus revalidation on reload is the right trade for a device
+// that gets OTA updates.
+static void sendGz(AsyncWebServerRequest *request, const uint8_t *data, size_t len, const char *mime,
+                   const char *cacheControl = "public, max-age=3600")
 {
     AsyncWebServerResponse *response = request->beginResponse(200, mime, data, len);
     response->addHeader("Content-Encoding", "gzip");
+    response->addHeader("Cache-Control", cacheControl);
     request->send(response);
 }
 
-#define AUTH_OR_RETURN(req)                 \
-    if (!isAuthorized(req))                 \
-    {                                       \
-        return req->requestAuthentication(); \
-    }
+#define STATIC_ROUTE(uri, sym, cache)                                              \
+    webServer.on(AsyncURIMatcher::exact(uri), HTTP_GET,                            \
+                 [](AsyncWebServerRequest *request)                                \
+                 {                                                                 \
+                     AUTH_OR_RETURN(request);                                      \
+                     sendGz(request, sym##_gz, sym##_gz_len, sym##_gz_mime, cache); \
+                 })
 
-// ---------------------------------------------------------------------------
-// Static pages (asset names come from pre_build.py / src/www)
-// ---------------------------------------------------------------------------
 static void handleIndex(AsyncWebServerRequest *request)
 {
     AUTH_OR_RETURN(request);
-    sendGz(request, index_html_gz, index_html_gz_len, index_html_gz_mime);
-}
-
-static void handleAppJs(AsyncWebServerRequest *request)
-{
-    AUTH_OR_RETURN(request);
-    sendGz(request, app_js_gz, app_js_gz_len, app_js_gz_mime);
-}
-
-static void handleGetIcon(AsyncWebServerRequest *request)
-{
-    sendGz(request, blled_svg_gz, blled_svg_gz_len, blled_svg_gz_mime);
-}
-
-static void handleGetFavicon(AsyncWebServerRequest *request)
-{
-    sendGz(request, favicon_png_gz, favicon_png_gz_len, favicon_png_gz_mime);
-}
-
-static void handleStyleCss(AsyncWebServerRequest *request)
-{
-    sendGz(request, style_css_gz, style_css_gz_len, style_css_gz_mime);
+    sendGz(request, index_html_gz, index_html_gz_len, index_html_gz_mime, "no-cache");
 }
 
 static void handleWiFiSetupPage(AsyncWebServerRequest *request)
 {
-    sendGz(request, wifiSetup_html_gz, wifiSetup_html_gz_len, wifiSetup_html_gz_mime);
-}
-
-static void handleWebSerialPage(AsyncWebServerRequest *request)
-{
     AUTH_OR_RETURN(request);
-    sendGz(request, webSerialPage_html_gz, webSerialPage_html_gz_len, webSerialPage_html_gz_mime);
+    sendGz(request, wifiSetup_html_gz, wifiSetup_html_gz_len, wifiSetup_html_gz_mime, "no-cache");
 }
 
 // ---------------------------------------------------------------------------
-// Config
+// Legacy aliases (section 7).  Kept so old bookmarks/scripts keep working.
 // ---------------------------------------------------------------------------
-static void handleGetConfig(AsyncWebServerRequest *request)
-{
-    AUTH_OR_RETURN(request);
-
-    JsonDocument doc;
-    STATE_LOCK();
-    configToJson(doc);
-    STATE_UNLOCK();
-
-    // secrets are never echoed (REVIEW #29)
-    doc["wifiPass"] = strlen(globalVariables.APPW) ? "********" : "";
-    doc["webPass"] = strlen(securityVariables.HTTPPass) ? "********" : "";
-    doc["mqttExtPass"] = strlen(printerConfig.mqttExtPass) ? "********" : "";
-
-    // legacy aliases still used by the current setup page
-    doc["firmwareversion"] = globalVariables.FWVersion;
-    doc["wifiStrength"] = WiFi.RSSI();
-    doc["ip"] = printerConfig.printerIP;
-    doc["code"] = printerConfig.accessCode;
-    doc["id"] = printerConfig.serialNumber;
-    doc["apMAC"] = printerConfig.BSSID;
-
-    String json;
-    serializeJson(doc, json);
-    request->send(200, "application/json", json);
-}
-
-// Old form post -> JSON -> configFromJson(). Booleans follow HTML checkbox
-// semantics (absent == off), everything else is only applied when present.
-static void handleSubmitConfig(AsyncWebServerRequest *request)
-{
-    AUTH_OR_RETURN(request);
-
-    JsonDocument doc;
-    for (size_t i = 0; i < CONFIG_FIELD_COUNT; i++)
-    {
-        const ConfigField &f = CONFIG_FIELDS[i];
-        if (f.kind == K_COLOR)
-        {
-            char key[40];
-            const char *suffix[3] = {"RGB", "WW", "CW"};
-            for (int s = 0; s < 3; s++)
-            {
-                snprintf(key, sizeof(key), "%s%s", f.key, suffix[s]);
-                if (request->hasParam(key, true))
-                    doc[key] = request->getParam(key, true)->value();
-            }
-            continue;
-        }
-        if (f.kind == K_BOOL)
-        {
-            doc[f.key] = request->hasParam(f.key, true);
-            continue;
-        }
-        if (request->hasParam(f.key, true))
-            doc[f.key] = request->getParam(f.key, true)->value();
-    }
-    // upstream form field names
-    if (request->hasParam("deviceName", true))
-        doc["host"] = request->getParam("deviceName", true)->value();
-    if (request->hasParam("brightnessslider", true))
-        doc["brightness"] = request->getParam("brightnessslider", true)->value();
-    if (request->hasParam("inactivityMins", true))
-        doc["inactivityMins"] = request->getParam("inactivityMins", true)->value();
-
-    String errors;
-    STATE_LOCK();
-    configFromJson(doc.as<JsonVariantConst>(), true, errors);
-    printerConfig.rescanWiFiNetwork = request->hasParam("rescanWiFiNetwork", true);
-    STATE_UNLOCK();
-
-    configDirty = true;
-    ledDirty = true;
-    request->send(200, "text/plain", "OK");
-}
-
-static void handlePrinterConfigJson(AsyncWebServerRequest *request)
+static void handleLegacyGetConfig(AsyncWebServerRequest *request)
 {
     AUTH_OR_RETURN(request);
     JsonDocument doc;
-    doc["ssid"] = globalVariables.SSID;
-    doc["pass"] = strlen(globalVariables.APPW) ? "********" : "";
-    doc["host"] = globalVariables.Host;
-    doc["printerIP"] = printerConfig.printerIP;
-    doc["printerSerial"] = printerConfig.serialNumber;
-    doc["accessCode"] = printerConfig.accessCode;
-    doc["webUser"] = securityVariables.HTTPUser;
-    doc["webPass"] = strlen(securityVariables.HTTPPass) ? "********" : "";
-    doc["isAPMode"] = isApMode();
-
-    String json;
-    serializeJson(doc, json);
-    request->send(200, "application/json", json);
-}
-
-static void handleSubmitWiFi(AsyncWebServerRequest *request)
-{
-    auto param = [request](const char *name) -> String
-    {
-        return request->hasParam(name, true) ? request->getParam(name, true)->value() : String("");
-    };
-
-    String ssid = param("ssid");
-    String pass = param("pass");
-    ssid.trim();
-    pass.trim();
-    if (ssid.length() > 0)
-        strlcpy(globalVariables.SSID, ssid.c_str(), sizeof(globalVariables.SSID));
-    if (pass.length() > 0 && pass != "********")
-        strlcpy(globalVariables.APPW, pass.c_str(), sizeof(globalVariables.APPW));
-
-    String bssidStr = param("bssid");
-    if (bssidStr.length() > 0)
-        strlcpy(printerConfig.BSSID, bssidStr.c_str(), sizeof(printerConfig.BSSID));
-
-    String host = param("host");
-    host.trim();
-    if (host.length() > 0)
-        strlcpy(globalVariables.Host, host.c_str(), sizeof(globalVariables.Host));
-
-    String printerIP = param("printerIP");
-    if (printerIP.length() > 0)
-        strlcpy(printerConfig.printerIP, printerIP.c_str(), sizeof(printerConfig.printerIP));
-    String printerSerial = param("printerSerial");
-    if (printerSerial.length() > 0)
-        strlcpy(printerConfig.serialNumber, printerSerial.c_str(), sizeof(printerConfig.serialNumber));
-    String accessCode = param("accessCode");
-    if (accessCode.length() > 0)
-        strlcpy(printerConfig.accessCode, accessCode.c_str(), sizeof(printerConfig.accessCode));
-
-    String webUser = param("webUser");
-    String webPass = param("webPass");
-    if (request->hasParam("webUser", true))
-        strlcpy(securityVariables.HTTPUser, webUser.c_str(), sizeof(securityVariables.HTTPUser));
-    if (request->hasParam("webPass", true) && webPass != "********")
-        strlcpy(securityVariables.HTTPPass, webPass.c_str(), sizeof(securityVariables.HTTPPass));
-
-    STATE_LOCK();
-    validateConfig();
-    STATE_UNLOCK();
-    configDirty = true;
-
-    request->send(200, "text/plain", "Settings saved, restarting...");
-    restartRequested = true;
-    restartRequestMs = millis();
-}
-
-static void handleDownloadConfigFile(AsyncWebServerRequest *request)
-{
-    AUTH_OR_RETURN(request);
-
-    JsonDocument doc;
-    STATE_LOCK();
-    configToJson(doc); // a backup deliberately contains the secrets
-    STATE_UNLOCK();
-
-    String jsonString;
-    serializeJsonPretty(doc, jsonString);
-    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", jsonString);
-    response->addHeader("Content-Disposition", "attachment; filename=\"blledconfig.json\"");
+    buildConfigJson(doc, false);
+    AsyncResponseStream *response = request->beginResponseStream("application/json");
+    serializeJson(doc, *response);
     request->send(response);
 }
 
-static void handleFactoryReset(AsyncWebServerRequest *request)
+// ---------------------------------------------------------------------------
+// WebSocket (section 7.5)
+// ---------------------------------------------------------------------------
+
+// Any task may call this; it only sets a flag that websocketLoop() consumes.
+void websocketNotifyChange()
 {
-    AUTH_OR_RETURN(request);
-    LogSerial.println(F("[FactoryReset] Deleting configuration"));
-    deleteConfig();
-    request->send(200, "text/plain", "Factory reset complete. Restarting...");
-    restartRequested = true;
-    restartRequestMs = millis();
+    wsChangePending = true;
 }
 
-// ---------------------------------------------------------------------------
-// WiFi scan / printer list
-// ---------------------------------------------------------------------------
-static void handleWiFiScan(AsyncWebServerRequest *request)
+static void wsPushStatus()
 {
     JsonDocument doc;
-    wifiScanResultsJson(doc); // asynchronous: {"scanning":true} until ready
-    String json;
-    serializeJson(doc, json);
-    request->send(200, "application/json", json);
+    buildStatusJson(doc);
+    String out;
+    out.reserve(measureJson(doc) + 1);
+    serializeJson(doc, out);
+    ws.textAll(out);
 }
 
-static void handlePrinterList(AsyncWebServerRequest *request)
-{
-    AUTH_OR_RETURN(request);
-    discoveryRequest();
-    JsonDocument doc;
-    discoveryListJson(doc);
-    String json;
-    serializeJson(doc, json);
-    request->send(200, "application/json", json);
-}
-
-// ---------------------------------------------------------------------------
-// WebSocket (transitional payload; §7.1 lands with api.h)
-// ---------------------------------------------------------------------------
-void sendJsonToAll(JsonDocument &doc)
-{
-    String jsonString;
-    serializeJson(doc, jsonString);
-    ws.textAll(jsonString);
-}
-
+// Called from the main loop.  Pushes at 1 Hz while clients are connected, plus
+// immediately (coalesced to >= 200 ms) when the printer state or the LED output
+// changed.
 void websocketLoop()
 {
+    const unsigned long now = millis();
+
+    if (now - wsLastCleanupMs >= WS_CLEANUP_INTERVAL_MS)
+    {
+        wsLastCleanupMs = now;
+        ws.cleanupClients(WS_MAX_CLIENTS);
+    }
+
+    // The LED engine does not know about the WebSocket; watch its output here.
+    if (memcmp(wsLastOutput, ledRuntime.output, sizeof(wsLastOutput)) != 0)
+    {
+        memcpy(wsLastOutput, ledRuntime.output, sizeof(wsLastOutput));
+        wsChangePending = true;
+    }
+
     if (ws.count() == 0)
+    {
+        wsChangePending = false;
         return;
-    if (millis() - lastWsPush <= wsPushInterval)
+    }
+
+    if (wsChangePending && (now - wsLastPushMs) >= WS_COALESCE_MS)
+    {
+        wsChangePending = false;
+        wsLastPushMs = now;
+        wsPushStatus();
         return;
-    lastWsPush = millis();
+    }
 
-    PrinterState snapshot;
-    STATE_LOCK();
-    memcpy(&snapshot, &printerState, sizeof(PrinterState));
-    STATE_UNLOCK();
+    if ((now - wsLastPushMs) >= WS_PUSH_INTERVAL_MS)
+    {
+        wsLastPushMs = now;
+        wsPushStatus();
+    }
+}
 
+// Client -> server commands (section 7.5).
+static void wsHandleCommand(const char *payload, size_t len)
+{
     JsonDocument doc;
-    doc["wifi_rssi"] = WiFi.RSSI();
-    doc["ip"] = WiFi.localIP().toString();
-    doc["uptime"] = millis() / 1000;
-    doc["doorOpen"] = snapshot.doorOpen;
-    doc["printerConnection"] = snapshot.online;
-    doc["clients"] = ws.count();
-    doc["stg_cur"] = snapshot.stage;
-    doc["stageName"] = stageName(snapshot.stage);
-    doc["gcodeState"] = snapshot.gcodeState;
-    doc["progress"] = snapshot.progress;
-    doc["ledReason"] = ledRuntime.reason;
-    sendJsonToAll(doc);
+    if (deserializeJson(doc, payload, len))
+        return;
+    const char *cmd = doc["cmd"].as<const char *>();
+    if (cmd == NULL)
+        return;
+
+    if (!strcmp(cmd, "clearLed"))
+    {
+        ledClearOverride();
+        wsChangePending = true;
+        return;
+    }
+    if (strcmp(cmd, "led") != 0)
+        return;
+
+    COLOR c;
+    const char *hex = doc["hex"].as<const char *>();
+    if (hex != NULL && hex[0] == '#' && strlen(hex) == 7)
+        c = hex2rgb(hex, 0, 0);
+    else
+    {
+        c.r = (short)constrain((int)(doc["r"] | 0), 0, 255);
+        c.g = (short)constrain((int)(doc["g"] | 0), 0, 255);
+        c.b = (short)constrain((int)(doc["b"] | 0), 0, 255);
+        snprintf(c.RGBhex, sizeof(c.RGBhex), "#%02x%02x%02x", c.r, c.g, c.b);
+    }
+    c.ww = (short)constrain((int)(doc["ww"] | 0), 0, 255);
+    c.cw = (short)constrain((int)(doc["cw"] | 0), 0, 255);
+
+    LedEffect effect = ledEffectFromString(doc["effect"].as<const char *>(), LedEffect::Solid);
+    uint32_t durationMs = (uint32_t)constrain((int32_t)(doc["durationSec"] | 0), (int32_t)0, (int32_t)86400) * 1000UL;
+    int8_t brightness = -1;
+    if (doc["brightness"].is<int>())
+        brightness = (int8_t)constrain(doc["brightness"].as<int>(), 0, 100);
+
+    ledRequestOverride(c, effect, durationMs, brightness);
+    wsChangePending = true;
 }
 
 static void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type,
                       void *arg, uint8_t *data, size_t len)
 {
     (void)server;
-    (void)arg;
-    (void)data;
-    (void)len;
     switch (type)
     {
     case WS_EVT_CONNECT:
-        LogSerial.printf("[WS] Client connected: %u\n", client->id());
+        if (printerConfig.debugChanges)
+            LogSerial.printf("[WS] Client %u connected\n", client->id());
+        wsChangePending = true;
         break;
+
     case WS_EVT_DISCONNECT:
     case WS_EVT_ERROR:
-        ws.cleanupClients();
         break;
+
+    case WS_EVT_DATA:
+    {
+        AwsFrameInfo *info = (AwsFrameInfo *)arg;
+        if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT && len < 512)
+            wsHandleCommand((const char *)data, len);
+        break;
+    }
+
     default:
         break;
     }
@@ -380,132 +243,66 @@ void setupWebserver()
     else
         MDNS.addService("http", "tcp", 80);
 
-    LogSerial.println(F("Setting up webserver"));
+    LogSerial.println(F("[Web] Setting up the web server"));
 
-    webServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+    DefaultHeaders::Instance().addHeader("X-Content-Type-Options", "nosniff");
+
+    // ---- /api/* ------------------------------------------------------------
+    registerApiRoutes(webServer);
+
+    // ---- static assets -----------------------------------------------------
+    webServer.on(AsyncURIMatcher::exact("/"), HTTP_GET, [](AsyncWebServerRequest *request)
                  {
         if (isApMode())
-            request->redirect("/wifi");
-        else
-            handleIndex(request); });
-    webServer.on("/index.html", HTTP_GET, handleIndex);
-    webServer.on("/app.js", HTTP_GET, handleAppJs);
-    webServer.on("/getConfig", HTTP_GET, handleGetConfig);
-    webServer.on("/submitConfig", HTTP_POST, handleSubmitConfig);
-    webServer.on("/blled.svg", HTTP_GET, handleGetIcon);
-    webServer.on("/favicon.ico", HTTP_GET, handleGetFavicon);
-    webServer.on("/config.json", HTTP_GET, handlePrinterConfigJson);
-    webServer.on("/wifi", HTTP_GET, handleWiFiSetupPage);
-    webServer.on("/wifiScan", HTTP_GET, handleWiFiScan);
-    webServer.on("/submitWiFi", HTTP_POST, handleSubmitWiFi);
-    webServer.on("/style.css", HTTP_GET, handleStyleCss);
-    webServer.on("/configfile.json", HTTP_GET, handleDownloadConfigFile);
-    webServer.on("/webserial", HTTP_GET, handleWebSerialPage);
-    webServer.on("/printerList", HTTP_GET, handlePrinterList);
-    webServer.on("/factoryreset", HTTP_GET, handleFactoryReset);
-    webServer.on("/factoryreset", HTTP_POST, handleFactoryReset);
+            return request->redirect("/wifi");
+        handleIndex(request); });
+    webServer.on(AsyncURIMatcher::exact("/index.html"), HTTP_GET, handleIndex);
+    webServer.on(AsyncURIMatcher::exact("/wifi"), HTTP_GET, handleWiFiSetupPage);
+    webServer.on(AsyncURIMatcher::exact("/wifiSetup.html"), HTTP_GET, handleWiFiSetupPage);
 
-    // ---- config restore: stream to a temp file, validate, then swap --------
-    webServer.on(
-        "/configrestore", HTTP_POST,
-        [](AsyncWebServerRequest *request)
-        {
-            AUTH_OR_RETURN(request);
-            File f = LittleFS.open(configTmpPath, "r");
-            bool ok = false;
-            if (f)
-            {
-                size_t size = f.size();
-                if (size > 0 && size < 32768)
-                {
-                    std::unique_ptr<char[]> buf(new (std::nothrow) char[size + 1]);
-                    if (buf)
-                    {
-                        size_t read = f.readBytes(buf.get(), size);
-                        buf[read] = '\0';
-                        ok = validateConfigJson(buf.get(), read);
-                    }
-                }
-                f.close();
-            }
-            if (!ok)
-            {
-                LittleFS.remove(configTmpPath);
-                request->send(400, "application/json", "{\"error\":\"not a valid BLLED configuration\"}");
-                return;
-            }
-            LittleFS.remove(configPath);
-            LittleFS.rename(configTmpPath, configPath);
-            request->send(200, "application/json", "{\"ok\":true,\"restartRequired\":true}");
-            restartRequested = true;
-            restartRequestMs = millis();
-        },
-        [](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
-        {
-            static File uploadFile;
-            if (index == 0)
-            {
-                // REVIEW #28: authenticate BEFORE the first byte is written.
-                if (!isAuthorized(request))
-                {
-                    request->requestAuthentication();
-                    return;
-                }
-                LogSerial.printf("[ConfigUpload] Start: %s\n", filename.c_str());
-                uploadFile = LittleFS.open(configTmpPath, "w");
-            }
-            if (uploadFile)
-                uploadFile.write(data, len);
-            if (final && uploadFile)
-                uploadFile.close();
-        });
+    STATIC_ROUTE("/app.js", app_js, "public, max-age=3600");
+    STATIC_ROUTE("/style.css", style_css, "public, max-age=3600");
+    STATIC_ROUTE("/blled.svg", blled_svg, "public, max-age=86400");
+    STATIC_ROUTE("/favicon.png", favicon_png, "public, max-age=86400");
+    STATIC_ROUTE("/favicon.ico", favicon_png, "public, max-age=86400");
 
-    // ---- OTA ---------------------------------------------------------------
-    webServer.on(
-        "/update", HTTP_POST,
-        [](AsyncWebServerRequest *request)
-        {
-            AUTH_OR_RETURN(request);
-            bool ok = !Update.hasError();
-            request->send(ok ? 200 : 500, "application/json", ok ? "{\"ok\":true}" : "{\"error\":\"update failed\"}");
-            if (ok)
-            {
-                restartRequested = true;
-                restartRequestMs = millis();
-            }
-        },
-        [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
-        {
-            if (index == 0)
-            {
-                // REVIEW #27: OTA was completely unauthenticated upstream.
-                if (!isAuthorized(request))
-                {
-                    request->requestAuthentication();
-                    return;
-                }
-                LogSerial.printf("[OTA] Start: %s\n", filename.c_str());
-                if (!Update.begin(UPDATE_SIZE_UNKNOWN))
-                    Update.printError(LogSerial);
-            }
-            if (Update.isRunning() && Update.write(data, len) != len)
-                Update.printError(LogSerial);
-            if (final && Update.isRunning())
-            {
-                if (Update.end(true))
-                    LogSerial.printf("[OTA] Success (%u bytes)\n", (unsigned)(index + len));
-                else
-                    Update.printError(LogSerial);
-            }
-        });
+    // The WebSerial page must be registered before LogSerial.begin(), which
+    // installs the library's own (plain, unauthenticated) page on /webserial.
+    STATIC_ROUTE("/webserial", webSerialPage_html, "no-cache");
 
-    LogSerial.begin(&webServer);
+    // ---- legacy aliases (section 7) ---------------------------------------
+    webServer.on(AsyncURIMatcher::exact("/getConfig"), HTTP_GET, handleLegacyGetConfig);
+    webServer.on(AsyncURIMatcher::exact("/configfile.json"), HTTP_GET, handleApiConfigBackup);
+    webServer.on(AsyncURIMatcher::exact("/printerList"), HTTP_GET, handleApiPrinters);
+    webServer.on(AsyncURIMatcher::exact("/update"), HTTP_POST, handleApiUpdateDone, handleApiUpdateUpload);
+    webServer.on(AsyncURIMatcher::exact("/configrestore"), HTTP_POST, handleApiRestoreDone, handleApiRestoreUpload);
 
+    // ---- WebSocket ---------------------------------------------------------
+    // REVIEW #29: the handshake goes through the same auth as every other route.
+    ws.handleHandshake([](AsyncWebServerRequest *request) -> bool
+                       { return isAuthorized(request); });
     ws.onEvent(onWsEvent);
     webServer.addHandler(&ws);
-    webServer.begin();
 
-    LogSerial.println(F("Webserver started"));
+    // ---- 404 / captive portal ---------------------------------------------
+    webServer.onNotFound([](AsyncWebServerRequest *request)
+                         {
+        if (request->method() == HTTP_OPTIONS)
+            return request->send(204);
+        if (request->url().startsWith("/api/"))
+            return apiError(request, 404, "no such endpoint");
+        if (isApMode())
+            return request->redirect("/wifi"); // captive-portal catch-all
+        request->send(404, "application/json", "{\"error\":\"not found\"}"); });
+
+    // The WebSerial log socket (/webserialws) is owned by the library; give it
+    // the same Basic credentials as every other route (open in AP mode).
+    if (!isApMode() && strlen(securityVariables.HTTPUser) > 0 && strlen(securityVariables.HTTPPass) > 0)
+        LogSerial.setAuthentication(securityVariables.HTTPUser, securityVariables.HTTPPass);
+    LogSerial.begin(&webServer);
+
+    webServer.begin();
+    LogSerial.println(F("[Web] Web server started"));
 }
 
 #endif

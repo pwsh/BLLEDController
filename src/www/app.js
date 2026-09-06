@@ -986,9 +986,15 @@ function tick() {
   if (l) {
     var speed = num(draft.effectSpeed, 5);
     var base;
+    /* Composite the decision colour (pre brightness/effect), not the dimmed PWM duties:
+       the warm/cold tints only cancel to white at full scale, so a dimmed white built
+       from l.r..l.cw renders brown.  Brightness is applied afterwards as a multiplier. */
+    var tc = l.target || { r: l.r, g: l.g, b: l.b, ww: l.ww, cw: l.cw };
+    var bright = num(l.effectiveBrightness !== undefined ? l.effectiveBrightness : l.brightness, 100) / 100;
     if (l.effect === "rainbow") base = hsl2rgb((now / period("rainbow", speed) * 360) % 360);
-    else base = composite(l.r, l.g, l.b, l.ww, l.cw);
-    var m = modulation(l.effect, speed, now);
+    else base = composite(tc.r, tc.g, tc.b, tc.ww, tc.cw);
+    /* soften the dimming so a 20 % strip still reads as its colour rather than near-black */
+    var m = modulation(l.effect, speed, now) * (bright > 0 ? 0.35 + 0.65 * bright : 0);
     var css = rgbCss(base, m);
     var leds = $("#d-leds");
     if (leds.childElementCount !== LEDCOUNT) {

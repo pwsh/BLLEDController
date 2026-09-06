@@ -100,6 +100,7 @@ curl -s http://192.168.1.50/api/status | jq
   },
   "led": {
     "mode": "auto", "r": 0, "g": 0, "b": 0, "ww": 204, "cw": 204, "brightness": 80,
+    "target": {"r": 0, "g": 0, "b": 0, "ww": 255, "cw": 255}, "effectiveBrightness": 80,
     "effect": "solid", "reason": "Printing (stage 0)",
     "override": false, "overrideRemainingSec": 0, "identify": false
   },
@@ -127,6 +128,11 @@ Notes:
 * `led.r/g/b/ww/cw` are the **actual PWM values last written** (after fade, effect and
   brightness), so a breathing LED reports a changing value.
 * `led.brightness` is the persisted `brightness` setting, not the momentary effect level.
+* `led.target` is the **decision colour before fade, effect and brightness** (the configured
+  colour the current rule picked, or the override colour), and `led.effectiveBrightness` is the
+  brightness actually applied to it (the override's temporary brightness while an override is
+  active, otherwise `led.brightness`). Use these to show "what colour is the strip" — compositing
+  the dimmed `r/g/b/ww/cw` values misrepresents a dimmed white as brown/tan.
 * `doorKnown` is `false` until the printer has reported a door change since boot. On an X1C whose door
   did not actuate its switch when closed the bit never changed; pressing the switch by hand flipped it.
   While `false` the UI shows a muted *Door: not reported* chip and door-based features fall back to
@@ -481,7 +487,8 @@ mosquitto_sub -h 192.168.1.10 -v -t 'blled/workshop/#'
 ```
 
 `state` is `ON` while a manual override is active. `brightness` is 0–255 (the 0–100 setting
-scaled). `color` is the override colour, or the current engine output when `OFF`.
+scaled). `color` is the override colour, or the current decision colour (before brightness and
+effect, i.e. `led.target`) when `OFF`.
 
 ### Subscribed topics
 

@@ -333,8 +333,16 @@ class Sim(object):
 
         def out(hexrgb, ww, cw, effect, reason, override=False, remain=0):
             h = hexrgb.lstrip("#")
-            return {"mode": CFG["ledMode"], "r": int(h[0:2], 16), "g": int(h[2:4], 16),
-                    "b": int(h[4:6], 16), "ww": ww, "cw": cw,
+            tgt = {"r": int(h[0:2], 16), "g": int(h[2:4], 16), "b": int(h[4:6], 16),
+                   "ww": ww, "cw": cw}
+            eff_b = CFG["brightness"]
+            if override and self.override and self.override.get("brightness") is not None:
+                eff_b = self.override["brightness"]
+            # r..cw mirror the firmware: PWM duty after brightness (effects not simulated)
+            scaled = {k: int(round(v * eff_b / 100.0)) for k, v in tgt.items()}
+            return {"mode": CFG["ledMode"], "r": scaled["r"], "g": scaled["g"],
+                    "b": scaled["b"], "ww": scaled["ww"], "cw": scaled["cw"],
+                    "target": tgt, "effectiveBrightness": eff_b,
                     "brightness": CFG["brightness"], "effect": effect, "reason": reason,
                     "override": override, "overrideRemainingSec": remain,
                     "identify": time.time() < self.identify_until}

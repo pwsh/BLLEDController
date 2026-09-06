@@ -61,7 +61,7 @@ mosquitto_sub -h 192.168.1.10 -v -t 'blled/workshop/#'
 ```
 
 where `state` is `ON` while a manual override is active, `brightness` is 0–255 (your 0–100 setting
-scaled), and `color` is the override colour — or the engine's current output when `OFF`.
+scaled), and `color` is the override colour — or the current decision colour (before brightness and effect) when `OFF`.
 
 ## What BLLED listens to
 

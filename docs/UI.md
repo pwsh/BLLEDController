@@ -109,8 +109,12 @@ never opens or drops; the header dot shows `live` / `polling` / `reconnecting` /
 Every status frame re-renders the dashboard.
 
 A single `requestAnimationFrame` loop drives all animation. It composites the five channels
-into the colour the strip actually emits (`composite()`, warm-white and cold-white tints
-added to RGB and clamped) and applies the same effect modulation curves as `leds.h` §4.2 —
+of the **decision colour** (`led.target`, pre brightness/effect) into the colour the strip
+actually emits (`composite()`, warm-white and cold-white tints added to RGB and clamped), then
+dims by `led.effectiveBrightness` (softened: 35 % floor so a dim strip still shows its hue).
+It must not composite the raw `led.r..cw` PWM duties: the tints only cancel to white at full
+scale, so a white strip at 40 % brightness would render as brown. It applies the same effect
+modulation curves as `leds.h` §4.2 —
 `breathe` 6 s → 1.5 s, `blink` 1.2 s → 0.3 s, `fastblink` 0.3 s → 0.1 s, `rainbow` 60 s → 6 s
 across `effectSpeed` 1–10 — so the on-screen preview matches the hardware. The same loop
 animates the little preview chips beside the effect and visualisation selectors.

@@ -198,6 +198,19 @@ static void apiFillLed(JsonObject led, const LedRuntime &lr, const ApiCfgSnapsho
     led["ww"] = lr.output[3];
     led["cw"] = lr.output[4];
     led["brightness"] = cfg.brightness;
+    // Decision colour before fade/effect/brightness, plus the brightness actually applied
+    // (override brightness wins while an override is active).  The UI renders the strip
+    // preview from these: compositing the dimmed PWM values above would turn a dimmed
+    // white into brown, because the warm/cold tints only cancel out at full scale.
+    JsonObject tgt = led["target"].to<JsonObject>();
+    tgt["r"] = lr.targetColor.r;
+    tgt["g"] = lr.targetColor.g;
+    tgt["b"] = lr.targetColor.b;
+    tgt["ww"] = lr.targetColor.ww;
+    tgt["cw"] = lr.targetColor.cw;
+    led["effectiveBrightness"] = (lr.overrideActive && lr.overrideBrightness >= 0)
+                                     ? constrain((int)lr.overrideBrightness, 0, 100)
+                                     : cfg.brightness;
     led["effect"] = ledEffectToString(lr.effect);
     // lr is a stack snapshot: ArduinoJson keeps const char* by pointer, so copy.
     led["reason"] = String(lr.reason);

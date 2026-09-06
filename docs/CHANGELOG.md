@@ -203,7 +203,10 @@ controller decides — gcode state, stage + stage name, progress, layer/total la
 nozzle/bed/chamber temperatures with targets, all four fans, door/chamber-light/work-light/SD-card
 flags, job name, print type, print error, AMS summary, the full HMS list with severity, module and
 "ignored" flag — plus the LED decision (actual PWM output, effect, human-readable reason, override
-state) the finish/inactivity timers, and both MQTT connection states.
+state) the finish/inactivity timers, and both MQTT connection states. `led.target` /
+`led.effectiveBrightness` carry the decision colour before brightness and the brightness applied to
+it, so a client can show the strip colour without compositing dimmed PWM duties (which rendered a
+dimmed white as brown on the dashboard).
 The **identical object** is pushed over the WebSocket and published on the external MQTT broker, so
 the UI, an automation and Home Assistant all see exactly the same data (`docs/REVIEW.md` #35).
 

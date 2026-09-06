@@ -243,7 +243,9 @@ static uint32_t extComputeDiscoveryHash()
 // ---------------------------------------------------------------------------
 
 // HA JSON-light state shape (docs/HA-DISCOVERY.md 3a).  ON = override active;
-// colour = override colour, or the current engine output when OFF.
+// colour = override colour, or the current decision colour (pre brightness/effect)
+// when OFF -- brightness is reported separately, so the dimmed PWM output would
+// double-dim and skew the hue in HA's swatch.
 static void extBuildLightJson(JsonDocument &doc)
 {
     LedRuntime lr;
@@ -270,9 +272,9 @@ static void extBuildLightJson(JsonDocument &doc)
     }
     else
     {
-        col["r"] = lr.output[0];
-        col["g"] = lr.output[1];
-        col["b"] = lr.output[2];
+        col["r"] = lr.targetColor.r;
+        col["g"] = lr.targetColor.g;
+        col["b"] = lr.targetColor.b;
         doc["effect"] = ledEffectToString(lr.effect);
     }
 }

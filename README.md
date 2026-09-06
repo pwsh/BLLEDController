@@ -282,8 +282,9 @@ src/www/                  index.html + app.js + style.css (SPA), wifiSetup.html 
 tools/mock_server.py      stdlib mock of the whole API for UI development
 tools/test_api.sh         curl smoke test against a real controller
 tools/capture_printer_mqtt.py / fixtures_x1c_pushall.json   real X1C report for parser work
+tools/bblp_sim.py         tkinter Bambu-printer MQTT simulator (v2 era, unmaintained)
 docs/                     see above
-firmware/                 release images and ESP Web Tools manifests
+firmware/                 current v3 image (.bin full / .bin.ota OTA) and ESP Web Tools manifest
 ```
 
 ## Building from source
